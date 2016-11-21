@@ -1,0 +1,3 @@
+menuentry '@IMG@' {
+  multiboot /boot/@IMG@
+}

@@ -23,7 +23,7 @@ info: action=report
 debug: action=ignore, pci=report # report BX_DEBUG from module 'pci'
 
 debugger_log: -
-parport1: enabled=1, file="parport.out"
+#parport1: enabled=1, file="parport.out"
 
 mouse: enabled=0
 private_colormap: enabled=0

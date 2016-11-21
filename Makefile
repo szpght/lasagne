@@ -25,6 +25,6 @@ kernel: $(IMG)
 iso: $(ISO)
 
 emulate:
-	$(MAKE) -C lasagne/arch/$(ARCH) emulate
+	$(MAKE) IMG=$(IMG) ISO=$(ISO) -C lasagne/arch/$(ARCH) emulate
 
 .PHONY: kernel iso emulate clean

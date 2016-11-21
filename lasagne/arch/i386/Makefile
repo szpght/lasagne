@@ -14,9 +14,10 @@ $(IMG): $(BOOSTRAP) $(OBJS)
 
 $(ISO): $(IMG)
 	mkdir -p $(@D)
-	mkdir -p iso-build/boot/grub
-	sed 's#@IMG@#$(IMG)#g' grub.cfg.in > iso-build/boot/grub/grub.cfg
-	grub-mkrescue -o $(ISO)
+	mkdir -p iso-build/boot/grub/
+	cp -a $(IMG) iso-build/boot/
+	(cd iso-build && sed 's#@IMG@#$(IMG)#g' ../grub.cfg.in > ../iso-build/boot/grub/grub.cfg)
+	grub-mkrescue -o $(ISO) iso-build
 
 # Object files
 %.o: %.asm

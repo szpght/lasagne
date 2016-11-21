@@ -10,3 +10,6 @@ $(IMG): lasagne/arch/$(ARCH)
 
 clean:
 	find \( -name '*.o' -or -name '*.bin' \) -exec rm -v {} \;
+
+emulate:
+	$(MAKE) -C lasagne/arch/$(ARCH) emulate

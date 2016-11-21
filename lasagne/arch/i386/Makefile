@@ -1,22 +1,23 @@
-CC 				= i686-elf-gcc
-CFLAGS 		= -ffreestanding -Wall -Wextra -O0 -std=c11 -pedantic
-LDFLAGS 	= -T linker.ld -ffreestanding -Os -nostdlib -lgcc -fno-use-linker-plugin
-NASM    	= nasm
+include ../../../config.mk
 
-OBJS 			= main.o
+CC        = i686-elf-gcc
+CFLAGS    = -ffreestanding -Wall -Wextra -O0 -std=c11 -pedantic
+LDFLAGS   = -T linker.ld -ffreestanding -Os -nostdlib -lgcc -fno-use-linker-plugin
+NASM      = nasm
 
+OBJS      = main.o
 BOOTSTRAP = bootstrap.o
 
 # Kernel
-$(IMG): $(BOOSTRAP) $(OBJS)
+$(KERNEL): $(BOOTSTRAP) $(OBJS)
 	mkdir -p $(@D)
 	$(CC) $(LDFLAGS) -o $@ $^
 
-$(ISO): $(IMG)
+$(ISO): $(KERNEL)
 	mkdir -p $(@D)
 	mkdir -p iso-build/boot/grub/
-	cp -a $(IMG) iso-build/boot/
-	(cd iso-build && sed 's#@IMG@#$(IMG)#g' ../grub.cfg.in > ../iso-build/boot/grub/grub.cfg)
+	cp -a $(KERNEL) iso-build/boot/
+	(cd iso-build && sed 's#@KERNEL@#$(KERNEL)#g' ../grub.cfg.in > ../iso-build/boot/grub/grub.cfg)
 	grub-mkrescue -o $(ISO) iso-build
 
 # Object files
@@ -27,11 +28,16 @@ $(ISO): $(IMG)
 	$(CC) -c $< -o $@ $(CFLAGS)
 
 # Shorthands
-kernel: $(IMG)
+kernel: $(KERNEL)
 
 iso: $(ISO)
 
 emulate: $(ISO)
 	bochs -f lasagne.bochsrc
 
-.PHONY: kernel iso emulate
+clean:
+	rm -rvf iso-build/ \
+	        bochsout.txt \
+					parport.out
+
+.PHONY: kernel iso emulate clean

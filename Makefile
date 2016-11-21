@@ -1,30 +1,27 @@
 include config.mk
 
-IMGSUFFIX = .bin
-IMG = $(IMGBASE)$(IMGSUFFIX)
-ISO = $(IMGBASE).iso
-
-$(ISO): lasagne/arch/$(ARCH)
-	$(MAKE) IMG=$(IMG) ISO=$(ISO) -C $< $@
+$(ISO): $(ARCHDIR)
+	$(MAKE) -C $< $@
 	mkdir -p $(@D)
 	cp -u $</$@ $@
 
-$(IMG): lasagne/arch/$(ARCH)
-	$(MAKE) IMG=$(IMG) -C $< $@
+$(KERNEL): $(ARCHDIR)
+	$(MAKE) -C $< $@
 	mkdir -p $(@D)
 	cp -u $</$@ $@
 
 clean:
 	find \( -name '*.o' \
-		  -or -name '*.bin' \
-			-or -name '*.iso' \
-			-or -name '*.tmp' \) -exec rm -v {} \;
+	    -or -name '*.bin' \
+	    -or -name '*.iso' \
+	    -or -name '*.tmp' \) -exec rm -v {} \;
+	$(MAKE) -C $(ARCHDIR) clean
 
-kernel: $(IMG)
+kernel: $(KERNEL)
 
 iso: $(ISO)
 
 emulate:
-	$(MAKE) IMG=$(IMG) ISO=$(ISO) -C lasagne/arch/$(ARCH) emulate
+	$(MAKE) -C $(ARCHDIR) emulate
 
 .PHONY: kernel iso emulate clean

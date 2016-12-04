@@ -17,49 +17,62 @@ resb 16384
 stack_top:
 
 section .text
+
+; function zeroing given block of memory
+; fastcall convention
+; ecx - number of bytes
+; edx - address
+zero_memory:
+    test ecx, ecx
+    jz .function_return
+    mov BYTE [edx], 0
+    dec ecx
+    inc edx
+    jmp zero_memory
+
+    .function_return:
+    ret
+
+
+; kernel entry point
 global _start
 _start:
-    ; virtual memory initalization
     extern __page_directory
     extern __kernel_page_tables
     extern __data_start
     extern __multiboot_header_start
+    extern __vmem_base
+
+    ; setting up temporary stack
+    mov esp, stack_top
+    sub esp, __vmem_base
+
+    ;;;;;;;; virtual memory initalization
 
     ; zeroing page directory's lower half
-    xor ecx, ecx ; loop counter
-    mov eax, __page_directory ; current pd entry pointer
+    mov edx, __page_directory
+    mov ecx, 4 * 512
+    call zero_memory
 
-    pd_zeroing:
-    mov DWORD [eax], 0
-    add eax, 4
-    inc ecx
-    cmp ecx, 512
-    jne pd_zeroing
-
+    xor ecx, ecx
     ; setting pd upper half to proper page tables
     mov ebx, __kernel_page_tables ; current pt pointer with some attributes
-
-    ; at first setting attributes
+    ; setting attributes
     add ebx, 3 ; 1 - present, 2 - rw
 
+    ; edx stores address of first not zeroed page directory byte
     pd_setting:
-    mov DWORD [eax], ebx
-    add eax, 4
+    mov DWORD [edx], ebx
+    add edx, 4
     add ebx, 4096
     inc ecx
-    cmp ecx, 1023
+    cmp ecx, 511
     jne pd_setting
 
     ; now zeroing page tables
-    xor ecx, ecx
-    mov eax, __kernel_page_tables
-
-    pt_zeroing:
-    mov DWORD [eax], 0
-    inc ecx
-    add eax, 4
-    cmp ecx, 2*1024*1024/4
-    jne pt_zeroing
+    mov ecx, 2 * 1024 * 1024
+    mov edx, __kernel_page_tables
+    call zero_memory
 
     ; tables happily zeroed, now basic mapping
     ; set first 4MiB to identity paging

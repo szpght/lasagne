@@ -1,5 +1,7 @@
 include config.mk
 
+export ROOTDIR=$(CURDIR)
+
 $(ISO): $(ARCHDIR)
 	$(MAKE) -C $< $@
 	mkdir -p $(@D)

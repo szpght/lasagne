@@ -1,11 +1,11 @@
-include ../../../config.mk
+include $(ROOTDIR)/config.mk
 
 CC        = i686-elf-gcc
-CFLAGS    = -ffreestanding -Wall -Wextra -O0 -std=c11 -pedantic
+CFLAGS    = -ffreestanding -Wall -Wextra -O0 -std=c11 -pedantic -I$(ROOTDIR)/include
 LDFLAGS   = -T linker.ld -ffreestanding -Os -nostdlib -lgcc -fno-use-linker-plugin
 NASM      = nasm
 
-OBJS      = main.o frames.o
+OBJS      = main.o io/tty.o frames.o
 BOOTSTRAP = bootstrap.o
 
 # Kernel

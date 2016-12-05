@@ -1,5 +1,5 @@
 ARCH    = i386
-ARCHDIR = lasagne/arch/$(ARCH)
+ARCHDIR = arch/$(ARCH)
 BASE    = lasagne-$(ARCH)
 
 KERNEL  = $(BASE).bin

@@ -37,7 +37,8 @@ emulate: $(ISO)
 
 clean:
 	rm -rvf iso-build/ \
+	        $(ISO) \
 	        bochsout.txt \
-					parport.out
+	        parport.out
 
 .PHONY: kernel iso emulate clean

@@ -33,7 +33,7 @@ kernel: $(KERNEL)
 iso: $(ISO)
 
 emulate: $(ISO)
-	bochs -f lasagne.bochsrc
+	bochs $(BOCHSFLAGS) -f lasagne.bochsrc
 
 clean:
 	rm -rvf iso-build/ \

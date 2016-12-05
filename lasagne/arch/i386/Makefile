@@ -5,7 +5,7 @@ CFLAGS    = -ffreestanding -Wall -Wextra -O0 -std=c11 -pedantic
 LDFLAGS   = -T linker.ld -ffreestanding -Os -nostdlib -lgcc -fno-use-linker-plugin
 NASM      = nasm
 
-OBJS      = main.o
+OBJS      = main.o frames.o
 BOOTSTRAP = bootstrap.o
 
 # Kernel

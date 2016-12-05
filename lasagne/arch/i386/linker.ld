@@ -35,20 +35,14 @@ SECTIONS
         *(.bss)
     }
 
-    .page_directory ALIGN(4K) : AT(ADDR(.page_directory) - 0x80000000)
+    .kernel_structures ALIGN(4K) : AT(ADDR(.kernel_structures) - 0x80000000)
     {
         __page_directory = . - 0x80000000;
         . += 4K;
-    }
-
-    .page_tables ALIGN(4K) : AT(ADDR(.page_tables) - 0x80000000)
-    {
         __kernel_page_tables = . - 0x80000000;
         . += 2M;
-    }
-
-    .nonkernel_memory ALIGN(4K) : AT(ADDR(.nonkernel_memory) - 0x80000000)
-    {
+        __frame_bitmap = . - 0x80000000;
+        . += 128K;
         __free_memory_start = . - 0x80000000;
     }
 }

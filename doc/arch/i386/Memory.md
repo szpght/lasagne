@@ -20,3 +20,4 @@ Memory map
 | BSS                   | `__bss_start`              | `bss_section`        | variable |
 | Kernel page directory | `__page_directory`         | `page_directory`     | 4 KiB    |
 | Kernel page tables    | `__kernel_page_tables`     | `kernel_page_tables` | 2 MiB    |
+| Frame usage bitmap    | `__frame_bitmap`           | `frame_bitmap`       | 128 KiB  |

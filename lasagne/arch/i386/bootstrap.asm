@@ -47,6 +47,13 @@ _start:
     mov esp, stack_top
     sub esp, __vmem_base
 
+    ; parse multiboot memory map and fill frame bitmap
+    extern fill_frame_bitmap_from_memmap
+    mov eax, fill_frame_bitmap_from_memmap
+    sub eax, 0x80000000
+    push ebx
+    call eax
+
     ;;;;;;;; virtual memory initalization
 
     ; zeroing page directory's lower half

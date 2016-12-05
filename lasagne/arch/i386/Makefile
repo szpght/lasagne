@@ -9,7 +9,7 @@ OBJS      = main.o
 BOOTSTRAP = bootstrap.o
 
 # Kernel
-$(KERNEL): $(BOOTSTRAP) $(OBJS)
+$(KERNEL): $(BOOTSTRAP) $(OBJS) linker.ld
 	mkdir -p $(@D)
 	$(CC) $(LDFLAGS) -o $@ $^
 

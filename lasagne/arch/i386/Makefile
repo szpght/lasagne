@@ -11,7 +11,7 @@ BOOTSTRAP = bootstrap.o
 # Kernel
 $(KERNEL): $(BOOTSTRAP) $(OBJS) linker.ld
 	mkdir -p $(@D)
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) $(LDFLAGS) -o $@ $(BOOTSTRAP) $(OBJS)
 
 $(ISO): $(KERNEL)
 	mkdir -p $(@D)
@@ -39,6 +39,8 @@ clean:
 	rm -rvf iso-build/ \
 	        $(ISO) \
 	        bochsout.txt \
-	        parport.out
+	        parport.out \
+	        *.o \
+	        *.bin
 
 .PHONY: kernel iso emulate clean

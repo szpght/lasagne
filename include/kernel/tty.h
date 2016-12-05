@@ -37,7 +37,7 @@ struct tty_style {
     uint8_t flags;
 };
 
-void tty_putchar(uint32_t c, struct tty_style style);
+void tty_putchar(uint32_t c);
 void tty_setcursor(int row, int col);
 void tty_reset(void);
 void tty_clear(void);

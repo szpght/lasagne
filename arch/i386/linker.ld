@@ -28,7 +28,7 @@ SECTIONS
         *(.data)
     }
 
-    .bss ALIGN(4K) : AT(ADDR(.data) - 0x80000000)
+    .bss ALIGN(4K) : AT(ADDR(.bss) - 0x80000000)
     {
         __bss_start = . - 0x80000000;
         *(COMMON)

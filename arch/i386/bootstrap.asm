@@ -42,6 +42,7 @@ _start:
     extern __data_start
     extern __multiboot_header_start
     extern __vmem_base
+    extern __free_memory_start
 
     ; setting up temporary stack
     mov esp, stack_top
@@ -115,9 +116,9 @@ _start:
     test ecx, ecx
     jnz ro_fill_pt
 
-    ; .data, .bss
+    ; .data, .bss, .kernel_structures
     add eax, 2 ; darkneeee^Wrw once again
-    mov ecx, __page_directory
+    mov ecx, __free_memory_start
     sub ecx, __data_start
 
     rw_fill_pt:

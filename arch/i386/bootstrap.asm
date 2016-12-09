@@ -154,9 +154,9 @@ _start:
 
 	mov esp, stack_top
 
-	extern kernel_main
+	extern platform_initialize
 	push ebx
-	call kernel_main
+	call platform_initialize
     cli
 .hang:	hlt
 	jmp .hang

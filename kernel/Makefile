@@ -1,10 +1,12 @@
 export CC        = x86_64-elf-gcc
-export CFLAGS    = -ffreestanding -mcmodel=small -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -Wall -Wextra -O0 -std=c11 -I${PWD}/include
+export CFLAGS    = -ffreestanding -mcmodel=kernel -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -Wall -Wextra -O0 -std=c11 -I${PWD}/include
 export AFLAGS    = -felf64
-export LDFLAGS   = -ffreestanding -mcmodel=small -z max-page-size=0x1000 -T arch/x64/linker.ld -nostdlib -lgcc -fno-use-linker-plugin
-
+export LDFLAGS   = -ffreestanding -mcmodel=kernel -z max-page-size=0x1000 -T arch/x64/linker.ld -nostdlib -lgcc
 OBJS      =                     \
 	arch/x64/boot.o             \
+	arch/x64/init.o             \
+	arch/x64/io/tty.o           \
+
 
 
 KERNEL    = kernel.a
@@ -24,7 +26,7 @@ $(KERNEL): $(OBJS)
 	nasm $(AFLAGS) $< -o $@
 
 %.o: %.c
-	$(CC) -c $< -o $@ $(CFLAGS)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 iso: $(ISO)
 

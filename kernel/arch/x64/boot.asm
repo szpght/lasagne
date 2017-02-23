@@ -21,13 +21,21 @@ align 4
     dd CHECKSUM
 
 
+section .bss
+align 4
+stack_bottom:
+resb 16384
+stack_top:
+
 
 section .bootstrap_data
 align 4096
 ; reserve space for initial paging structures
 pml4t:
     resb 4096
-pdpt:
+pdptl:
+    resb 4096
+pdpth:
     resb 4096
 pd:
     resb 4096
@@ -69,11 +77,9 @@ _start:
     mov eax, pml4t
     mov cr3, eax
     
-
-
     ; zeroing paging structures
     mov eax, pml4t
-    mov ecx, 4096 * 3 / 4
+    mov ecx, 4096 * 4 / 4
 
     zero_tables:
     mov DWORD [eax], 0
@@ -84,17 +90,23 @@ _start:
 
     ; setup level-4 table
     mov eax, pml4t
-    mov DWORD [eax], pdpt
+    mov DWORD [eax], pdptl
     or DWORD [eax], PAGE_PRESENT | PAGE_RW
     
-    ; move level-4 pointer to beginning of higher half memory
-    add eax, 8 * 256
+    ; move level-4 pointer to last chunk of higher half memory
+    add eax, 8 * 511
 
-    mov DWORD [eax], pdpt
+    mov DWORD [eax], pdpth
     or DWORD [eax], PAGE_PRESENT | PAGE_RW
 
-    ; set first entry in PDPE to point at pd
-    mov eax, pdpt
+    ; set first entry in low PDPE to point at pd
+    mov eax, pdptl
+    mov DWORD [eax], pd
+    add DWORD [eax], PAGE_PRESENT | PAGE_RW
+
+    ; set second entry from the end in high PDPE to point at pd
+    mov eax, pdpth
+    add eax, 8 * 510
     mov DWORD [eax], pd
     add DWORD [eax], PAGE_PRESENT | PAGE_RW
 
@@ -109,8 +121,6 @@ _start:
     dec ecx
     test ecx, ecx
     jnz map_gib
-
-    xchg bx, bx
 
     ; enable PAE
     mov eax, cr4
@@ -134,9 +144,15 @@ _start:
 [BITS 64]
 _start64:
     cli
-    mov rdi, 0xFFFF8000000B8000
-    mov WORD [rdi], 0x3c3c
+
+    mov rsp, stack_top
+    mov rbp, rsp
+
+    extern initialize
+    mov rax, initialize
+    call rax
 
     .halt:
+    cli
     hlt
     jmp .halt

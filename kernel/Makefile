@@ -33,6 +33,6 @@ emulate: $(ISO)
 
 clean:
 	#@make -C stdc clean
-	rm -rvf $(KERNEL) $(IMAGE) $(ISO) $(OBJS) iso-build/
+	rm -rvf $(KERNEL) $(IMAGE) $(ISO) $(OBJS) iso-build/ bochsout.txt
 
 .PHONY: clean emulate iso

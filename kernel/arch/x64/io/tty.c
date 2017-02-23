@@ -1,7 +1,6 @@
-#include <stdint.h>
-#include <stddef.h>
-#include "../memory_sections.h"
-#include <kernel/tty.h>
+#include <types.h>
+#include <memory_map.h>
+#include <io/tty.h>
 
 static struct {
     int row;
@@ -12,11 +11,10 @@ static struct {
     struct tty_style style;
 } tty_state;
 
-static uint16_t *tty_buffer = vmem_base + 0xb8000;
+static uint16_t *tty_buffer = KERNEL_VMA + 0xb8000;
 
 /* TODO: incomplete implementation for debugging purposes */
-void
-tty_putchar(uint32_t c)
+void tty_putchar(uint32_t c)
 {
     uint16_t ch;
 
@@ -48,7 +46,7 @@ tty_putchar(uint32_t c)
         }
 
     else {
-        ch = 0x0700 | c;
+        ch = tty_state.style.fg << 8 | tty_state.style.bg << 12 | c;
         tty_buffer[tty_state.row * tty_state.width + tty_state.col] = ch;
         tty_state.col = (tty_state.col + 1) % tty_state.width;
         if (tty_state.col == 0)
@@ -57,14 +55,27 @@ tty_putchar(uint32_t c)
 
 }
 
-void
-tty_initialize(void)
+void tty_initialize()
 {
     tty_state.row = tty_state.col = 0;
     tty_state.width = 80;
-    tty_state.height = 24;
+    tty_state.height = 25;
     tty_state.tab = 8;
     tty_state.style.fg = TTY_COLOR_WHITE;
     tty_state.style.bg = TTY_COLOR_BLACK;
     tty_state.style.flags = 0;
+}
+
+void tty_set_color(enum tty_color foreground, enum tty_color background)
+{
+    tty_state.style.fg = foreground;
+    tty_state.style.bg = background;
+}
+
+void tty_putstring(char *string)
+{
+    while (*string) {
+        tty_putchar(*string);
+        ++string;
+    }
 }

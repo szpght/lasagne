@@ -31,3 +31,5 @@ void tty_putchar(uint32_t c);
 void tty_initialize();
 void tty_set_color(enum tty_color foreground, enum tty_color background);
 void tty_putstring(char *string);
+void tty_set_tab_size(int size);
+void tty_clear();

@@ -6,6 +6,7 @@ OBJS      =                     \
 	arch/x64/boot.o             \
 	arch/x64/init.o             \
 	arch/x64/io/tty.o           \
+	arch/x64/io/ports.o         \
 
 
 

@@ -145,6 +145,13 @@ _start:
 _start64:
     cli
 
+    ; jump to high memory
+    extern _KERNEL_VMA
+    mov rax, .high_memory
+    add rax, _KERNEL_VMA
+    jmp rax
+
+    .high_memory:
     mov rsp, stack_top
     mov rbp, rsp
 

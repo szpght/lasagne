@@ -21,7 +21,7 @@ SECTIONS
 
     . += _KERNEL_VMA;
 
-    .text : AT(ADDR(.text) - _KERNEL_VMA)
+    .text ALIGN(4K) : AT(ADDR(.text) - _KERNEL_VMA)
     {
         *(.text)
     }

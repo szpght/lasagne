@@ -13,7 +13,7 @@ cat << EOF > iso-build/boot/grub/grub.cfg
 set timeout=0
 
 menuentry "Kernel" {
-  multiboot /boot/$IMAGE
+  multiboot2 /boot/$IMAGE
 }
 EOF
 cp $IMAGE iso-build/boot

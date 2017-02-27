@@ -1,9 +1,8 @@
 [BITS 32]
-MBALIGN     equ  1 << 0 ; align loaded modules on page boundaries
-MEMINFO     equ  1 << 1 ; provide memory map
-FLAGS       equ  MBALIGN | MEMINFO
-MAGIC       equ  0x1BADB002
-CHECKSUM    equ  -(MAGIC + FLAGS)
+MAGIC         equ  0xE85250D6
+ARCHITECTURE  equ  0
+HEADER_LENGTH equ  16
+CHECKSUM      equ  -(MAGIC + ARCHITECTURE + HEADER_LENGTH)
 
 PAGE_PRESENT    equ 1 << 0
 PAGE_RW         equ 1 << 1
@@ -17,7 +16,8 @@ CR4_PSE         equ 1 << 4
 section .multiboot
 align 4
     dd MAGIC
-    dd FLAGS
+    dd ARCHITECTURE
+    dd HEADER_LENGTH
     dd CHECKSUM
 
 
@@ -28,17 +28,17 @@ resb 16384
 stack_top:
 
 
-section .bootstrap_data
+section .bootstrap
 align 4096
 ; reserve space for initial paging structures
 pml4t:
-    resb 4096
+    times 4096 db 0
 pdptl:
-    resb 4096
+    times 4096 db 0
 pdpth:
-    resb 4096
+    times 4096 db 0
 pd:
-    resb 4096
+    times 4096 db 0
 
 ; set GDT
 GDT64:                           ; Global Descriptor Table (64-bit).
@@ -68,26 +68,17 @@ GDT64:                           ; Global Descriptor Table (64-bit).
     dq GDT64                     ; Base.
 
 
-section .bootstrap
 ; this function maps first 1 GiB of memory 
 ; at 0x0000000000000000 and 0xFFFF800000000000
 global _start
 _start:
+    ; store multiboot2 information pointer
+    mov edi, ebx
+
     ; set PML4T address
     mov eax, pml4t
     mov cr3, eax
     
-    ; zeroing paging structures
-    mov eax, pml4t
-    mov ecx, 4096 * 4 / 4
-
-    zero_tables:
-    mov DWORD [eax], 0
-    add eax, 4
-    dec ecx
-    test ecx, ecx
-    jnz zero_tables
-
     ; setup level-4 table
     mov eax, pml4t
     mov DWORD [eax], pdptl
@@ -143,8 +134,6 @@ _start:
 
 [BITS 64]
 _start64:
-    cli
-
     ; jump to high memory
     extern _KERNEL_VMA
     mov rax, .high_memory

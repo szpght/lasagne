@@ -30,3 +30,4 @@ private_colormap: enabled=0
 
 pci: enabled=1, chipset=i440fx
 magic_break: enabled=1
+port_e9_hack: enabled=1 

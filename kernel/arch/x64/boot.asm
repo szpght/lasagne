@@ -75,6 +75,35 @@ _start:
     ; store multiboot2 information pointer
     mov edi, ebx
 
+    ; check if running on amd64
+
+    ; check if CPUID supported
+    ; flip ID bit and check if it worked
+    pushfd
+    pop eax
+    mov ecx, eax
+    xor eax, 1 << 21
+    push eax
+    popfd
+    pushfd
+    pop eax
+    cmp eax, ecx
+    je .no_amd64
+
+    ; check if testing for long mode available
+    mov eax, 0x80000000
+    cpuid
+    cmp eax, 0x80000001
+    jb .no_amd64
+
+    ; check if long mode actually supported
+    mov eax, 0x80000001
+    cpuid
+    test edx, 1 << 29
+    jz .no_amd64
+
+    ; end of amd64 check
+
     ; set PML4T address
     mov eax, pml4t
     mov cr3, eax
@@ -105,13 +134,13 @@ _start:
     mov eax, pd
     mov ebx, PAGE_PRESENT | PAGE_RW | PAGE_HUGE
     mov ecx, 512
-    map_gib:
+    .map_gib:
     mov [eax], ebx
     add eax, 8
     add ebx, 2 * 1024 * 1024
     dec ecx
     test ecx, ecx
-    jnz map_gib
+    jnz .map_gib
 
     ; enable PAE
     mov eax, cr4
@@ -131,6 +160,38 @@ _start:
 
     lgdt [GDT64.pointer]
     jmp GDT64.code:_start64
+
+
+    .no_amd64:
+    mov ecx, 80 * 25
+    mov eax, 0xB8000
+
+    .clear_screen:
+    mov WORD [eax], 0
+    add eax, 2
+    loop .clear_screen
+
+    ; print message
+    mov eax, 0xB8000
+    mov bh, 0x0F ; white text on black background
+    mov ecx, .message_end - .message
+    mov edx, .message
+
+    .print:
+    mov bl, BYTE [edx]
+    mov WORD [eax], bx
+    add eax, 2
+    inc edx
+    loop .print
+
+    .halt:
+    hlt
+    jmp .halt
+
+    .message:
+    db "64 bit mode not supported"
+    .message_end:
+
 
 [BITS 64]
 _start64:

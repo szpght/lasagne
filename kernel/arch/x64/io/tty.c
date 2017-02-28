@@ -1,5 +1,5 @@
 #include <types.h>
-#include <memory_map.h>
+#include <mm/memory_map.h>
 #include <io/tty.h>
 #include <io/ports.h>
 

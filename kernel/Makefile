@@ -8,6 +8,7 @@ OBJS      =                     \
 	arch/x64/io/tty.o           \
 	arch/x64/io/ports.o         \
 	base/printk.o               \
+	mm/buddy.o                  \
 
 
 

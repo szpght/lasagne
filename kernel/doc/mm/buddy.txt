@@ -1,0 +1,17 @@
+allocator_init():
+Initializes new instance of allocator. `bitmaps` should point to
+a block of memory meeting criteria:
+- located inside `memory`
+- aligned to `leaf_size` relatively to `memory`
+- size equal to returned by function `allocator_bitmaps_size`
+or be ALLOCATOR_EMPTY if location of bitmaps irrelevant.
+
+allocator_init_free():
+Marks given address range as usable for allocations. Memory for
+bitmaps is automatically omitted. Must be aligned to `leaf_size`
+relatively to the beginning of managed memory.
+Zero returned on success, non-zero otherwise.
+
+allocator_bitmaps_size():
+Returns size of usable memory block which must be passed
+to allocator_init.

@@ -42,5 +42,5 @@ SECTIONS
         *(.bss)
     }
 
-    _KERNEL_END = .;
+    _KERNEL_END = ALIGN(4K);
 }

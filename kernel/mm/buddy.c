@@ -1,5 +1,6 @@
 #include <mm/buddy.h>
 #include <stdbool.h>
+#include <printk.h>
 
 static int log2(long number);
 static void flip_bit(uint8_t *buffer, int bit);
@@ -59,10 +60,14 @@ int allocator_init_free(struct allocator *alloc, void *begin, void *end)
     // sanity checks
     size_t offset = begin - alloc->memory;
     if (begin < alloc->memory
-        || end > alloc->memory + alloc->size
         || offset % alloc->leaf_size) {
+            printk("init_free bad: begin=%lx, end=%lx\n", begin, end);
             return 1;
     }
+    if (end > alloc->memory + alloc->size) {
+        end = alloc->memory + alloc->size;
+    }
+    printk("init_free: begin=%lx, end=%lx\n", begin, end);
 
     void *bitmap_begin = alloc->allocation_bitmap;
     void *bitmap_end = alloc->split_bitmap + (alloc->split_bitmap - alloc->allocation_bitmap);

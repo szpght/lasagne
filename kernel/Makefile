@@ -5,10 +5,13 @@ export LDFLAGS   = -ffreestanding -mcmodel=kernel -z max-page-size=0x1000 -T arc
 OBJS      =                     \
 	arch/x64/boot.o             \
 	arch/x64/init.o             \
+	arch/x64/multiboot.o        \
 	arch/x64/io/tty.o           \
 	arch/x64/io/ports.o         \
 	base/printk.o               \
 	mm/buddy.o                  \
+	mm/frame.o                  \
+
 
 
 

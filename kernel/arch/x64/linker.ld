@@ -41,4 +41,6 @@ SECTIONS
         *(COMMON)
         *(.bss)
     }
+
+    _KERNEL_END = .;
 }

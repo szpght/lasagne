@@ -2,11 +2,20 @@
 #include <stdarg.h>
 #include <io/tty.h>
 #include <stdbool.h>
+#include <io/ports.h>
 
-void (*backend)(char) = tty_putchar;
+//void (*backend)(char) = tty_putchar;
+void backend(char c)
+{
+    outb(0xe9, c);
+    tty_putchar(c);
+}
 
 static void print_ulong(unsigned long n)
 {
+    if (n == 0) {
+        backend('0');
+    }
     int len = 0;
     char str[25] = { 0 };
     while (n) {

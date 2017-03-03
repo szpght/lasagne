@@ -37,7 +37,7 @@ $(KERNEL): $(OBJS)
 iso: $(ISO)
 
 emulate: $(ISO)
-	bochs -f os.bochsrc
+	bochs -q
 
 clean:
 	#@make -C stdc clean

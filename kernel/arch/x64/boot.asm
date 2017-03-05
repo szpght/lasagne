@@ -31,7 +31,8 @@ stack_top:
 section .bootstrap
 align 4096
 ; reserve space for initial paging structures
-pml4t:
+global _pml4t
+_pml4t:
     times 4096 db 0
 pdptl:
     times 4096 db 0
@@ -104,12 +105,12 @@ _start:
 
     ; end of amd64 check
 
-    ; set PML4T address
-    mov eax, pml4t
+    ; set _pml4t address
+    mov eax, _pml4t
     mov cr3, eax
     
     ; setup level-4 table
-    mov eax, pml4t
+    mov eax, _pml4t
     mov DWORD [eax], pdptl
     or DWORD [eax], PAGE_PRESENT | PAGE_RW
     
@@ -204,6 +205,12 @@ _start64:
     .high_memory:
     mov rsp, stack_top
     mov rbp, rsp
+    mov ax, GDT64.data
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
 
     extern initialize
     mov rax, initialize

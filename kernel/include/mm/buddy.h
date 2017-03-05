@@ -25,7 +25,7 @@ struct allocator {
     uint8_t *allocation_bitmap;
 };
 
-
+void allocator_print_status(struct allocator *alloc);
 void allocator_init(struct allocator *alloc, void *memory, size_t size,
                     size_t leaf_size, void *bitmaps);
 void *allocator_allocate(struct allocator *allocator, size_t size);

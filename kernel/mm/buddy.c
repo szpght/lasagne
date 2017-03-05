@@ -24,6 +24,18 @@ static void remove_from_list(struct allocator *alloc, struct allocator_node *blo
 static int allocation_level(struct allocator *alloc, void *block);
 
 
+void allocator_print_status(struct allocator *alloc)
+{
+    printk("STATUS OF ALLOCATOR AT %lx\n", alloc);
+    printk("Memory:     %lx-%lx\n", alloc->memory, alloc->memory + alloc->size - 1);
+    printk("Free space: %ld b\n", alloc->free_size);
+    printk("Leaf size:  %ld b\n", alloc->leaf_size);
+    printk("Free blocks:\n");
+    for (int i = 0; i <= alloc->max_level; ++i) {
+        printk("%ld: %ld\n", size_from_level(alloc, i), alloc->free_count[i]);
+    }
+}
+
 void allocator_init(struct allocator *alloc, void *memory, size_t size,
                     size_t leaf_size, void *bitmaps)
 {
@@ -61,13 +73,11 @@ int allocator_init_free(struct allocator *alloc, void *begin, void *end)
     size_t offset = begin - alloc->memory;
     if (begin < alloc->memory
         || offset % alloc->leaf_size) {
-            printk("init_free bad: begin=%lx, end=%lx\n", begin, end);
             return 1;
     }
     if (end > alloc->memory + alloc->size) {
         end = alloc->memory + alloc->size;
     }
-    printk("init_free: begin=%lx, end=%lx\n", begin, end);
 
     void *bitmap_begin = alloc->allocation_bitmap;
     void *bitmap_end = alloc->split_bitmap + (alloc->split_bitmap - alloc->allocation_bitmap);
@@ -234,8 +244,9 @@ void allocator_deallocate_fast(struct allocator *alloc, void *block, size_t size
     end:
     alloc->free_size += size;
     // add new free block to list
-    if (not_empty(alloc->free_blocks[level]))
+    if (not_empty(alloc->free_blocks[level])) {
         alloc->free_blocks[level]->prev = base_addr;
+    }
     base_addr->next = alloc->free_blocks[level];
     base_addr->prev = ALLOCATOR_EMPTY;
     alloc->free_blocks[level] = base_addr;

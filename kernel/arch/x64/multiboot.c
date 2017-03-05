@@ -40,9 +40,10 @@ void parse_multiboot(void *mb)
 void initialize_memory(void *mb)
 {
     size_t size = (size_t) physical_end(mb);
+    printk("Mapping physical memory to kernel address space... ");
     frame_init(size);
+    printk("mapped\n");
     mark_free(mb);
-
 }
 
 void *physical_end(void *mb)
@@ -53,12 +54,15 @@ void *physical_end(void *mb)
     int entries = (mm->size - sizeof(*mm)) / mm->entry_size;    
     struct mb_memmap_entry *entry = mb + sizeof(*mm);
     for (int i = 0; i < entries; ++i) {
-        void *current = entry->base_addr + entry->length;
+        void *current = (void*)entry->base_addr + entry->length;
+        printk ("memory area: base=%lx, size=%ld KiB, type=%d\n",
+            entry->base_addr, entry->length / 1024, entry->type);
         if (current > end) {
             end = current;
         }
         ++entry;
     }
+    return end;
 }
 
 void mark_free(void *mb)
@@ -68,10 +72,8 @@ void mark_free(void *mb)
     int entries = (mm->size - sizeof(*mm)) / mm->entry_size;
     struct mb_memmap_entry *entry = mb + sizeof(*mm);
     for (int i = 0; i < entries; ++i) {
-        printk ("memory area: base=%lx, size=%lx, type=%d\n",
-            entry->base_addr, entry->length, entry->type);
-
         if (entry->type == MB_RAM_AVAILABLE || entry->type == MB_RAM_ACPI) {
+            printk("Adding usable memory of size %ld at %lx\n", entry->length, entry->base_addr);
             add_free_space((void*)entry->base_addr, entry->length);
         }
         ++entry;

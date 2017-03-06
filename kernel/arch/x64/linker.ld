@@ -29,6 +29,7 @@ SECTIONS
     .rodata ALIGN(4K) : AT(ADDR(.rodata) - _KERNEL_VMA)
     {
         *(.rodata)
+        *(.rodata.*)
     }
 
     .data ALIGN(4K) : AT(ADDR(.data) - _KERNEL_VMA)
@@ -40,6 +41,11 @@ SECTIONS
     {
         *(COMMON)
         *(.bss)
+    }
+
+    .comment ALIGN(4K) : AT(ADDR(.comment) - _KERNEL_VMA)
+    {
+        *(.comment)
     }
 
     _KERNEL_END = ALIGN(4K);

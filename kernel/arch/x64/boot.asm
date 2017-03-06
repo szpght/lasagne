@@ -217,6 +217,5 @@ _start64:
     call rax
 
     .halt:
-    cli
     hlt
     jmp .halt

@@ -37,6 +37,8 @@ $(KERNEL): $(OBJS)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+image: $(KERNEL)
+
 iso: $(ISO)
 
 emulate: $(ISO)
@@ -46,4 +48,4 @@ clean:
 	#@make -C stdc clean
 	rm -rvf $(KERNEL) $(IMAGE) $(ISO) $(OBJS) iso-build/ bochsout.txt
 
-.PHONY: clean emulate iso
+.PHONY: clean emulate image iso

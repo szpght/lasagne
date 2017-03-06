@@ -10,6 +10,7 @@ OBJS             =              \
 	arch/x64/io/ports.o         \
 	base/printk.o               \
 	libc/string.o               \
+	mm/alloc.o                  \
 	mm/buddy.o                  \
 	mm/frame.o                  \
 	mm/memory_map.o             \

@@ -39,9 +39,10 @@ void *memmove(void* dest, const void* src, size_t size)
     const uint8_t *s = src;
     uint8_t *d = dest;
     if (d > s) {
-        for (size_t i = size - 1; i >= 0; --i) {
+        for (size_t i = size - 1; i > 0; --i) {
             d[i] = s[i];
         }
+        d[0] = s[0];
     }
     else {
         for (size_t i = 0; i < size; ++i) {

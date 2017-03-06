@@ -55,7 +55,7 @@ void map_physical(size_t size)
     KERNEL_END += 4096;
 
     // write pdpt to pml4t
-    PML4T_P[256] = (void*)pdpt - KERNEL_VMA;
+    PML4T_P[256] = (void*)pdpt - (uint64_t)KERNEL_VMA;
     PML4T[256].p = 1;
     PML4T[256].rw = 1;
 
@@ -83,7 +83,7 @@ void map_physical(size_t size)
     }
 
     int number_of_pds = ((void *)pd - KERNEL_END) / 4096;
-    pd = KERNEL_END - KERNEL_VMA;
+    pd = KERNEL_END - (uint64_t)KERNEL_VMA;
 
     // write pds to pdpt
     for (int i = 0; i < number_of_pds; ++i) {

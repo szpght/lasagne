@@ -233,7 +233,7 @@ void allocator_deallocate_fast(struct allocator *alloc, void *block, size_t size
         if (get_allocation_bit(alloc, base_addr, level)) {
             goto end;
         }
-        void *buddy = calculate_buddy_address(alloc, base_addr, level);
+        struct allocator_node *buddy = calculate_buddy_address(alloc, base_addr, level);
         remove_from_list(alloc, buddy, level);
         int parent_split_bit = split_bit_index(alloc, base_addr, level - 1);
         reset_bit(alloc->split_bitmap, parent_split_bit);

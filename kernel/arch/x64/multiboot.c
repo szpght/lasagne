@@ -10,7 +10,7 @@ void parse_multiboot(void *mb)
     uint8_t *src = mb;
     uint32_t size = ((struct mb_header*) mb)->total_size;
 
-    for (int i = 0; i < size; ++i) {
+    for (uint32_t i = 0; i < size; ++i) {
         dest[i] = src[i];
     }
     mb = KERNEL_VMA;
@@ -25,7 +25,7 @@ void parse_multiboot(void *mb)
         if (tag_size % 8) {
             tag_size += 8 - tag_size % 8;
         }
-        printk("Tag hit, type %u, size %u, addr %lx\n", mbt->type, mbt->size, mbt);
+        //printk("Tag hit, type %u, size %u, addr %lx\n", mbt->type, mbt->size, mbt);
         switch (mbt->type) {
         case MB_MEMORY_MAP:
             initialize_memory(mbt);
@@ -34,7 +34,7 @@ void parse_multiboot(void *mb)
         mb += tag_size;
         size -= tag_size;
     }
-    printk("End of multiboot information\n");
+    //printk("End of multiboot information\n");
 }
 
 void initialize_memory(void *mb)

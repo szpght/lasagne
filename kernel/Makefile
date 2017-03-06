@@ -1,14 +1,15 @@
 export CC        = x86_64-elf-gcc
-export CFLAGS    = -ffreestanding -mcmodel=kernel -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -Wall -Wextra -Og -std=c11 -I${PWD}/include
+export CFLAGS    = -ffreestanding -mcmodel=kernel -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -Wall -Wextra -Og -std=c11 -I${PWD}/include -I${PWD}/libc/include
 export AFLAGS    = -felf64
 export LDFLAGS   = -ffreestanding -mcmodel=kernel -z max-page-size=0x1000 -T arch/x64/linker.ld -nostdlib -lgcc
-OBJS      =                     \
+OBJS             =              \
 	arch/x64/boot.o             \
 	arch/x64/init.o             \
 	arch/x64/multiboot.o        \
 	arch/x64/io/tty.o           \
 	arch/x64/io/ports.o         \
 	base/printk.o               \
+	libc/string.o               \
 	mm/buddy.o                  \
 	mm/frame.o                  \
 	mm/memory_map.o             \

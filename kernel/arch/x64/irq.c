@@ -63,7 +63,6 @@ void load_idt(uint16_t size, void *idt)
 
 void create_idt()
 {
-    printk("handler: %lx\n", (uint64_t)int_stub_handler);
     struct idt_model idt_model = {
         .offset = (uint64_t)int_stub_handler,
         .selector = 0x08,
@@ -75,4 +74,6 @@ void create_idt()
     for (int i = 0; i < 256; ++i) {
         compile_idt(idt + i, &idt_model);
     }
+    idt_model.offset = (uint64_t)page_fault_handler;
+    compile_idt(idt + 14, &idt_model);
 }

@@ -56,3 +56,4 @@ void _load_idt(struct idtr *idtr);
 
 // irq handlers, not to be called from C!
 void int_stub_handler();
+void page_fault_handler();

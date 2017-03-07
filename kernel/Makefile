@@ -39,7 +39,7 @@ $(KERNEL): $(OBJS)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-image: $(KERNEL)
+image: $(IMAGE)
 
 iso: $(ISO)
 

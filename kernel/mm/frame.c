@@ -92,5 +92,9 @@ void map_physical(size_t size)
     }
 
     KERNEL_END = (uint64_t)pd + KERNEL_VMA;
+
+    // TODO move in more convenient place
+    // unmap identity paging
+    PML4T_P[0] = 0;
     reload_paging();
 }

@@ -13,4 +13,5 @@ void initialize(void *multiboot_information)
     parse_multiboot(multiboot_information);
     initialize_irq();
     printk("SYSTEM BOOTED\n");
+    __asm__ volatile ("int $48");
 }

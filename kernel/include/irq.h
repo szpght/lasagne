@@ -14,6 +14,14 @@
 #define PIC1_OFFSET 0x20
 #define PIC2_OFFSET 0x28
 
+#define INT_WRAPPER_ALIGN 16
+
+#define INT_HANDLER_ERRORCODE (1 << 0)
+#define INT_HANDLER_RETVAL (1 << 1)
+
+// this number must be consistnet with irq_asm.asm
+#define INT_VECTORS_NUMBER 256
+
 struct idtr {
     uint16_t limit;
     void *offset;
@@ -44,6 +52,14 @@ struct idt_model
 };
 
 
+struct idt_handler
+{
+    void *address;
+    uint64_t flags;
+} __attribute__((packed));
+
+
+extern void interrupt_wrapper();
 
 void initialize_irq();
 void initialize_pic();
@@ -53,7 +69,4 @@ void create_idt();
 void enable_irq();
 void disable_irq();
 void _load_idt(struct idtr *idtr);
-
-// irq handlers, not to be called from C!
-void int_stub_handler();
-void page_fault_handler();
+void set_irq_handler(int irq_number, void *address, uint64_t flags);

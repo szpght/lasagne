@@ -2,14 +2,21 @@
 #include <io/ports.h>
 #include <mm/alloc.h>
 
-struct idt_entry idt[256];
+struct idt_entry idt[INT_VECTORS_NUMBER];
+struct idt_handler idt_handler[INT_VECTORS_NUMBER];
+
+void syscall_stub()
+{
+    printk("Syscall called\n");
+}
 
 void initialize_irq()
 {
     initialize_pic();
     create_idt();
-    load_idt(sizeof(struct idt_entry) * 256, idt);
+    load_idt(sizeof(struct idt_entry) * INT_VECTORS_NUMBER, idt);
     enable_irq();
+    set_irq_handler(0x30, syscall_stub, 0);
 }
 
 void initialize_pic()
@@ -55,7 +62,7 @@ void compile_idt(struct idt_entry *dest, struct idt_model *src)
 void load_idt(uint16_t size, void *idt)
 {
     struct idtr idtr = {
-        .limit = size,
+        .limit = size - 1,
         .offset = idt
     };
     _load_idt(&idtr);
@@ -64,16 +71,20 @@ void load_idt(uint16_t size, void *idt)
 void create_idt()
 {
     struct idt_model idt_model = {
-        .offset = (uint64_t)int_stub_handler,
         .selector = 0x08,
         .ist = 0,
         .type = 0xE,
         .dpl = 0,
         .present = 1
     };
-    for (int i = 0; i < 256; ++i) {
+    for (int i = 0; i < INT_VECTORS_NUMBER; ++i) {
+        idt_model.offset = (uint64_t)interrupt_wrapper + INT_WRAPPER_ALIGN * i;
         compile_idt(idt + i, &idt_model);
     }
-    idt_model.offset = (uint64_t)page_fault_handler;
-    compile_idt(idt + 14, &idt_model);
+}
+
+void set_irq_handler(int irq_number, void *address, uint64_t flags)
+{
+    idt_handler[irq_number].address = address;
+    idt_handler[irq_number].flags = flags;
 }

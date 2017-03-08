@@ -14,14 +14,14 @@
 #define PIC1_OFFSET 0x20
 #define PIC2_OFFSET 0x28
 
-#define INT_WRAPPER_ALIGN 16
+#define INT_WRAPPER_ALIGN 8
 
 #define INT_HANDLER_ERRORCODE (1 << 0)
 #define INT_HANDLER_RETVAL (1 << 1)
 #define INT_HANDLER_USER (1 << 2)
 
 // this number must be consistnet with irq_asm.asm
-#define INT_VECTORS_NUMBER 256
+#define INT_VECTORS_NUMBER 80
 
 struct idtr {
     uint16_t limit;

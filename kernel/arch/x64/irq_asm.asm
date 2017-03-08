@@ -18,15 +18,15 @@ _load_idt:
     ret
 
 
-align 16, nop
+align 8, nop
 global interrupt_wrapper
 interrupt_wrapper:
     %assign i 0
     ; this number must be consistent with INT_VECTORS_NUMBER in irq.h
-    %rep 256
+    %rep 80
     push i
     jmp handler
-    align 16, nop
+    align 8, nop
     %assign i i+1
     %endrep
 

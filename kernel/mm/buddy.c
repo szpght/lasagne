@@ -86,7 +86,7 @@ int allocator_init_free(struct allocator *alloc, void *begin, void *end)
             begin = bitmap_end;
             continue;
         }
-        allocator_deallocate_fast(alloc, begin, alloc->leaf_size);
+        allocator_deallocate_level(alloc, begin, alloc->max_level);
         begin += alloc->leaf_size;
     }
     return 0;
@@ -225,6 +225,11 @@ static void remove_from_list(struct allocator *alloc, struct allocator_node *blo
 void allocator_deallocate_fast(struct allocator *alloc, void *block, size_t size)
 {
     int level = level_from_size(alloc, size);
+    allocator_deallocate_level(alloc, block, level);
+}
+
+void allocator_deallocate_level(struct allocator *alloc, void *block, int level)
+{
     struct allocator_node *base_addr = block;
     do {
         flip_allocation_bit(alloc, base_addr, level);
@@ -242,7 +247,7 @@ void allocator_deallocate_fast(struct allocator *alloc, void *block, size_t size
     } while (level > 0);
 
     end:
-    alloc->free_size += size;
+    alloc->free_size += size_from_level(alloc, level);
     // add new free block to list
     if (not_empty(alloc->free_blocks[level])) {
         alloc->free_blocks[level]->prev = base_addr;

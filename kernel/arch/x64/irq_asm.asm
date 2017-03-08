@@ -59,8 +59,11 @@ handler:
     mov rbx, [rsp + 8 * 15]
     imul rbx, SIZEOF_IDT_HANDLER
 
+    ; get register state
+    mov rdi, rsp
+
     ; get error code
-    mov rdi, [rsp + 8 * 16]
+    mov rsi, [rsp + 8 * 16]
 
     call [idt_handler + rbx]
 

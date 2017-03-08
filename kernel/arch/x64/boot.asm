@@ -66,6 +66,7 @@ GDT64:                           ; Global Descriptor Table (64-bit).
     db 0                         ; Base (high).
     .pointer:                    ; The GDT-pointer.
     dw $ - GDT64 - 1             ; Limit.
+    .base_pointer:
     dq GDT64                     ; Base.
 
 
@@ -203,6 +204,10 @@ _start64:
     jmp rax
 
     .high_memory:
+    ; update GDT with upper-half address
+    add QWORD [GDT64.base_pointer], _KERNEL_VMA
+    lgdt [GDT64.pointer]
+
     mov rsp, stack_top
     mov rbp, rsp
     mov ax, GDT64.data

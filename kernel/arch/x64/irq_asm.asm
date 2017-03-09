@@ -101,3 +101,9 @@ handler:
     add rsp, 8
 
     iretq
+
+
+global get_cr2
+get_cr2:
+mov rax, cr2
+ret

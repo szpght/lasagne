@@ -110,9 +110,7 @@ void generic_exception_handler(struct irq_state *regs, uint64_t error_code)
     printk("RBP = %lx    R8 = %lx    R9 = %lx\n", regs->rbp, regs->r8, regs->r9);
     printk("R10 = %lx   R11 = %lx   R12 = %lx\n", regs->r10, regs->r11, regs->r12);
     printk("R13 = %lx   R14 = %lx   R15 = %lx\n", regs->r13, regs->r14, regs->r15);
-    // evil hack
-    __asm__ ("mov %cr2, %rdi");
-    printk("CR2 = %lx\n", regs);
+    printk("CR2 = %lx\n", get_cr2());
 
     for(;;) {
         __asm__ ("hlt");

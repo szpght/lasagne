@@ -11,6 +11,8 @@ OBJS             =              \
 	arch/x64/io/tty.o           \
 	arch/x64/io/ports.o         \
 	base/printk.o               \
+	base/task.o                 \
+	base/task_asm.o             \
 	libc/string.o               \
 	mm/alloc.o                  \
 	mm/buddy.o                  \

@@ -5,6 +5,7 @@
 #include <multiboot.h>
 #include <mm/pages.h>
 #include <irq.h>
+#include <task.h>
 
 void initialize(void *multiboot_information)
 {
@@ -14,4 +15,13 @@ void initialize(void *multiboot_information)
     initialize_irq();
     printk("SYSTEM BOOTED\n");
     __asm__ volatile ("int $48");
+    initialize_tasks();
+    int counter = 0;
+    while (1) {
+        for (int i = 0; i < 50000000; ++i) {
+            __asm__ volatile ("nop");
+        }
+        printk("A %d\n", ++counter);
+        preempt_sys();
+    }
 }

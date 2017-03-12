@@ -8,10 +8,12 @@ void *kalloc(size_t size)
     while (alloc_size < size) {
         alloc_size <<= 1;
     }
-    return allocator_allocate(&frame_alloc, alloc_size) - (uint64_t)KERNEL_PHYS;
+    void *ptr = allocator_allocate(&frame_alloc, alloc_size);
+    printk("allocated: %lx\n", ptr);
+    return ptr;
 }
 
 void kfree(void *ptr)
 {
-    allocator_deallocate(&frame_alloc, ptr + (uint64_t)KERNEL_PHYS);
+    allocator_deallocate(&frame_alloc, ptr);
 }

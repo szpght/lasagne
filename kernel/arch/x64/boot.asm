@@ -9,9 +9,15 @@ PAGE_RW         equ 1 << 1
 PAGE_HUGE        equ 1 << 7
 
 CR0_PAGING      equ 1 << 31
+CRO_WRITE_PROT  equ 1 << 16
 
 CR4_PAE         equ 1 << 5
-CR4_PSE         equ 1 << 4
+CR4_PGE         equ 1 << 7
+CR4_SMEP        equ 1 << 20
+
+IA32_EFER       equ 0xC0000080
+IA32_EFER_LME   equ 1 << 8
+IA32_EFER_NXE   equ 1 << 11
 
 section .multiboot
 align 4
@@ -150,14 +156,14 @@ _start:
     mov cr4, eax
 
     ; set long mode bit in EFER MSR register
-    mov ecx, 0xC0000080
+    mov ecx, IA32_EFER
     rdmsr
-    or eax, 1 << 8
+    or eax, IA32_EFER_LME | IA32_EFER_NXE
     wrmsr
 
     ; enable paging
     mov eax, cr0
-    or eax, CR0_PAGING
+    or eax, CR0_PAGING | CRO_WRITE_PROT
     mov cr0, eax
 
     lgdt [GDT64.pointer]
@@ -202,6 +208,11 @@ _start64:
     mov rax, .high_memory
     add rax, _KERNEL_VMA
     jmp rax
+
+    ; enable additional protections
+    mov rax, cr4
+    or rax, CR4_PGE | CR4_SMEP
+    mov cr4, rax
 
     .high_memory:
     ; update GDT with upper-half address

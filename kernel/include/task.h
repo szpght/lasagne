@@ -6,6 +6,19 @@
 #define DEFAULT_STACK_SIZE 8192
 
 
+struct tss {
+    uint32_t reserved;
+    uint64_t rsp0;
+    uint64_t rsp1;
+    uint64_t rsp2;
+    uint64_t reserved2;
+    uint64_t ist[7];
+    uint64_t reserved3;
+    uint16_t reserved4;
+    uint16_t iomap_base_addr;
+} __attribute__((packed));
+
+
 struct registers {
     uint64_t rax;
     uint64_t rbx;

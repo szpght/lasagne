@@ -70,6 +70,8 @@ GDT64:                           ; Global Descriptor Table (64-bit).
     db 10010010b                 ; Access (read/write).
     db 00000000b                 ; Granularity.
     db 0                         ; Base (high).
+    .tss: equ $ - GDT64
+    times 16 db 0 ; will be filled at runtime
     .pointer:                    ; The GDT-pointer.
     dw $ - GDT64 - 1             ; Limit.
     .base_pointer:

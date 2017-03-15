@@ -5,6 +5,8 @@
 #include <printk.h>
 #include <ds.h>
 
+struct tss tss;
+
 
 struct task kernel_task;
 struct task *tasks;
@@ -67,4 +69,14 @@ void preempt_sys()
     struct thread *old_thread = current_thread;
     current_thread = current_thread->next;
     switch_task_sys(&old_thread->rsp, current_thread->rsp);
+}
+
+void setup_tss()
+{
+
+}
+
+void set_current_kernel_stack(void *stack)
+{
+    tss.ist[0] = stack;
 }

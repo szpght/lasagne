@@ -9,6 +9,7 @@ struct idt_handler idt_handler[INT_VECTORS_NUMBER];
 void syscall_stub(struct irq_state *registers)
 {
     printk("Syscall called, rdi=%lx\n", registers->rdi);
+    preempt_int();
 }
 
 void initialize_irq()

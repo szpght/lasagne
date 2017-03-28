@@ -50,7 +50,7 @@ enum thread_state {
 struct thread {
     enum thread_state state;
     struct registers registers;
-    uint64_t rsp;
+    uint64_t *rsp;
     struct task *task;
     struct thread *next;
     struct thread *prev;
@@ -74,3 +74,4 @@ void preempt_sys();
 
 //void switch_task_sys(uint64_t *old_rsp, uint64_t new_rsp);
 void switch_task_sys(uint64_t *old_rsp, uint64_t new_rsp);
+void switch_task_int(uint64_t *old_rsp, uint64_t new_rsp);

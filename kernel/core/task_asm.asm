@@ -42,3 +42,16 @@ switch_task_sys:
     pop r15
     popfq
     ret
+
+
+global switch_task_int
+global switch_task_int_return
+switch_task_int:
+    ; save rsp
+    mov QWORD [rdi], rsp
+
+    ; restore rsp of new task
+    mov rsp, QWORD rsi
+    
+    switch_task_int_return:
+    ret

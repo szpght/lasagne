@@ -6,6 +6,7 @@
 #include <mm/pages.h>
 #include <irq.h>
 #include <task.h>
+extern void* _tss_descriptor;
 
 void initialize(void *multiboot_information)
 {
@@ -13,8 +14,8 @@ void initialize(void *multiboot_information)
     tty_set_color(TTY_COLOR_LIGHT_GREEN, TTY_COLOR_BLACK);
     parse_multiboot(multiboot_information);
     initialize_irq();
-    printk("SYSTEM BOOTED\n");
     initialize_tasks();
+    printk("SYSTEM BOOTED\n");
     int counter = 0;
     while (1) {
         for (int i = 0; i < 50000000; ++i) {

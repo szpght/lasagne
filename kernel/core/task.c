@@ -4,6 +4,7 @@
 #include <mm/alloc.h>
 #include <printk.h>
 #include <ds.h>
+#include <irq.h>
 
 struct tss tss;
 
@@ -26,6 +27,7 @@ void do_sth()
 
 void initialize_tasks()
 {
+    setup_tss();
     initialize_task(&kernel_task, "kernel", false, NULL);
     current_thread = kernel_task.main_thread;
     create_thread(&kernel_task, do_sth);
@@ -64,11 +66,7 @@ struct thread *create_thread(struct task *task, void *main)
     }
     *(--thread->rsp) = main;
     *place_for_rsp = thread->rsp;
-    /*uint64_t *entry = thread->rsp - 8;
-    uint64_t *rflags = thread->rsp - 2 * 8;
-    *entry = main;
-    *rflags = RFLAGS_IF;
-    thread->rsp -= 17 * 8; // all general registers w/o rsp + rflags + rip*/
+
     thread->state = THREAD_RUNNING;
     thread->task = task;
 
@@ -85,12 +83,29 @@ void preempt_sys()
 
 void setup_tss()
 {
-
+    disable_irq();
+    uint64_t tss_desc_virt = (uint64_t) &_tss_descriptor + KERNEL_VMA;
+    struct tss_descriptor *tss_desc = (struct tss_descriptor*) tss_desc_virt;
+    tss_desc->limit15_0 = sizeof tss;
+    tss_desc->base_addr23_0 = (uint64_t)(&tss) & 0xFFFFFF;
+    // tss must be available, it will automatically change to busy when loaded
+    tss_desc->type = TSS_AVAILABLE;
+    tss_desc->limit19_16 = 0;
+    tss_desc->avl = 1;
+    tss_desc->base31_24 = ((uint64_t)(&tss) >> 24) & 0xFF;
+    tss_desc->base63_32 = ((uint64_t)(&tss) >> 32) & 0xFFFFFFFF;
+    tss_desc->zero = 0;
+    tss_desc->present = 1;
+    __asm__ volatile("push %rax");
+    __asm__ volatile("movw $0x28, %ax");
+    __asm__ volatile("ltr %ax");
+    __asm__ volatile("pop %rax");
+    enable_irq();
 }
 
 void set_current_kernel_stack(void *stack)
 {
-    //tss.esp0 = stack;
+    tss.rsp0 = stack;
 }
 
 void preempt_int()

@@ -5,6 +5,10 @@
 #define RFLAGS_IF 1 << 9
 #define DEFAULT_STACK_SIZE 8192
 
+#define TSS_AVAILABLE 9;
+#define TSS_BUSY 11;
+
+extern void *_tss_descriptor;
 
 struct tss {
     uint32_t reserved;
@@ -16,6 +20,19 @@ struct tss {
     uint64_t reserved3;
     uint16_t reserved4;
     uint16_t iomap_base_addr;
+} __attribute__((packed));
+
+
+struct tss_descriptor {
+    uint16_t limit15_0;
+    uint32_t base_addr23_0 : 24;
+    uint32_t type : 7; // includes reserved 0 bit and dpl
+    uint32_t present : 1;
+    uint8_t limit19_16 : 4;
+    uint8_t avl : 4; // includes 2 reserved 0 bits and 1 byte granularity
+    uint8_t base31_24;
+    uint64_t base63_32;
+    uint64_t zero;
 } __attribute__((packed));
 
 

@@ -76,7 +76,8 @@ GDT64:                           ; Global Descriptor Table (64-bit).
     dw $ - GDT64 - 1             ; Limit.
     .base_pointer:
     dq GDT64                     ; Base.
-
+global _tss_descriptor;
+_tss_descriptor equ GDT64 + GDT64.tss
 
 ; this function maps first 1 GiB of memory 
 ; at 0x0000000000000000 and 0xFFFF800000000000

@@ -8,15 +8,15 @@
 #define TSS_AVAILABLE 9;
 #define TSS_BUSY 11;
 
-extern void *_tss_descriptor;
+extern void _tss_descriptor;
 
 struct tss {
     uint32_t reserved;
-    uint64_t rsp0;
-    uint64_t rsp1;
-    uint64_t rsp2;
+    uint64_t* rsp0;
+    uint64_t* rsp1;
+    uint64_t* rsp2;
     uint64_t reserved2;
-    uint64_t ist[7];
+    uint64_t* ist[7];
     uint64_t reserved3;
     uint16_t reserved4;
     uint16_t iomap_base_addr;
@@ -87,8 +87,9 @@ void initialize_tasks();
 void initialize_task(struct task *task, char *name, bool userspace, void *main);
 struct task *create_task(char *name, bool userspace, void *main);
 struct thread *create_thread(struct task *task, void *main);
-void preempt_sys();
+void preempt_int();
+void setup_tss();
 
-//void switch_task_sys(uint64_t *old_rsp, uint64_t new_rsp);
-void switch_task_sys(uint64_t *old_rsp, uint64_t new_rsp);
-void switch_task_int(uint64_t *old_rsp, uint64_t new_rsp);
+void switch_task_sys(uint64_t **old_rsp, uint64_t *new_rsp);
+void switch_task_int(uint64_t **old_rsp, uint64_t *new_rsp);
+void switch_task_int_return();

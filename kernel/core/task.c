@@ -49,7 +49,6 @@ struct task *create_task(char *name, bool userspace, void *main)
     return task;
 }
 
-extern void switch_task_int_return();
 struct thread *create_thread(struct task *task, void *main)
 {
     struct thread *thread = kalloc(sizeof *thread);
@@ -59,13 +58,13 @@ struct thread *create_thread(struct task *task, void *main)
     uint64_t *place_for_rsp = --thread->rsp; // rsp
     *(--thread->rsp) = RFLAGS_IF; // rflags
     *(--thread->rsp) = 0x8; // cs
-    *(--thread->rsp) = switch_task_int_return;
+    *(--thread->rsp) = (uint64_t) switch_task_int_return;
     *(--thread->rsp) = 0; // interrupt number
     for (int i = 0; i < 15; ++i) {
         *(--thread->rsp) = 0;
     }
-    *(--thread->rsp) = main;
-    *place_for_rsp = thread->rsp;
+    *(--thread->rsp) = (uint64_t) main;
+    *place_for_rsp = (uint64_t) thread->rsp;
 
     thread->state = THREAD_RUNNING;
     thread->task = task;
@@ -76,16 +75,12 @@ struct thread *create_thread(struct task *task, void *main)
 
 void preempt_sys()
 {
-    struct thread *old_thread = current_thread;
-    current_thread = current_thread->next;
-    switch_task_sys(&old_thread->rsp, current_thread->rsp);
 }
 
 void setup_tss()
 {
     disable_irq();
-    uint64_t tss_desc_virt = (uint64_t) &_tss_descriptor + KERNEL_VMA;
-    struct tss_descriptor *tss_desc = (struct tss_descriptor*) tss_desc_virt;
+    struct tss_descriptor *tss_desc = &_tss_descriptor + (uint64_t) KERNEL_VMA;
     tss_desc->limit15_0 = sizeof tss;
     tss_desc->base_addr23_0 = (uint64_t)(&tss) & 0xFFFFFF;
     // tss must be available, it will automatically change to busy when loaded

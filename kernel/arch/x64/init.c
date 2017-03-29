@@ -6,7 +6,6 @@
 #include <mm/pages.h>
 #include <irq.h>
 #include <task.h>
-extern void* _tss_descriptor;
 
 void initialize(void *multiboot_information)
 {

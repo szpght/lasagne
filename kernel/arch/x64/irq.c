@@ -2,6 +2,7 @@
 #include <io/ports.h>
 #include <mm/alloc.h>
 #include <printk.h>
+#include <task.h>
 
 struct idt_entry idt[INT_VECTORS_NUMBER];
 struct idt_handler idt_handler[INT_VECTORS_NUMBER];

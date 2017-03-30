@@ -106,21 +106,71 @@ void reset_irq_handler(int irq_number)
 
 void generic_exception_handler(struct irq_state *regs, uint64_t error_code)
 {
-    printk("Interrupt #%ld occured, error code (if applicable) %lx\n", regs->irq, error_code);
-    printk("RAX = %lx   RBX = %lx   RCX = %lx\n", regs->rax, regs->rbx, regs->rcx);
-    printk("RDX = %lx   RSI = %lx   RDI = %lx\n", regs->rdx, regs->rsi, regs->rdi);
-    printk("RBP = %lx    R8 = %lx    R9 = %lx\n", regs->rbp, regs->r8, regs->r9);
-    printk("R10 = %lx   R11 = %lx   R12 = %lx\n", regs->r10, regs->r11, regs->r12);
-    printk("R13 = %lx   R14 = %lx   R15 = %lx\n", regs->r13, regs->r14, regs->r15);
+    static char *exception_name[31] = {
+        "Divide-by-zero Error",
+        "Debug",
+        "Non-maskable Interrupt",
+        "Breakpoint",
+        "Overflow",
+        "Bound Range Exceeded",
+        "Invalid Opcode",
+        "Device Not Available",
+        "Double Fault",
+        "Coprocessor Segment Overrun",
+        "Invalid TSS",
+        "Segment Not Present",
+        "Stack-Segment Fault",
+        "General Protection Fault",
+        "Page Fault",
+        "Reserved",
+        "x87 Floating-Point Exception",
+        "Alignment Check",
+        "Machine Check",
+        "SIMD Floating-Point Exception",
+        "Virtualization Exception",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Security Exception"
+    };
+
+    printk("Exception #%ld occured: %s\n", regs->irq, exception_name[regs->irq]);
+    if (idt_handler[regs->irq].flags | INT_HANDLER_ERRORCODE) {
+        printk("Error code %lx\n", error_code);
+    }
+    printk("RAX = %lx    RBX = %lx    RCX = %lx\n", regs->rax, regs->rbx, regs->rcx);
+    printk("RDX = %lx    RSI = %lx    RDI = %lx\n", regs->rdx, regs->rsi, regs->rdi);
+    printk("RBP = %lx     R8 = %lx     R9 = %lx\n", regs->rbp, regs->r8, regs->r9);
+    printk("R10 = %lx    R11 = %lx    R12 = %lx\n", regs->r10, regs->r11, regs->r12);
+    printk("R13 = %lx    R14 = %lx    R15 = %lx\n", regs->r13, regs->r14, regs->r15);
     printk("CR2 = %lx\n", get_cr2());
+    printk("System halted\n");
 
     for(;;) {
-        __asm__ ("hlt");
+        __asm__ volatile ("hlt");
     }
 }
 
 void set_handlers()
 {
+    for (int i = 0 ; i <= 7; ++i) {
+        set_irq_handler(i, generic_exception_handler, 0);
+    }
+    for (int i = 8 ; i <= 14; ++i) {
+        set_irq_handler(i, generic_exception_handler, INT_HANDLER_ERRORCODE);
+    }
+    for (int i = 16 ; i <= 20; ++i) {
+        set_irq_handler(i, generic_exception_handler, 0);
+    }
+    set_irq_handler(17, syscall_stub, INT_HANDLER_ERRORCODE);
+    set_irq_handler(30, syscall_stub, INT_HANDLER_ERRORCODE);
+
+
     set_irq_handler(0x30, syscall_stub, INT_HANDLER_USER);
-    set_irq_handler(0x0b, generic_exception_handler, INT_HANDLER_ERRORCODE);
 }

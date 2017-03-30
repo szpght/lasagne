@@ -8,7 +8,7 @@
 #define TSS_AVAILABLE 9;
 #define TSS_BUSY 11;
 
-extern void _tss_descriptor;
+extern struct tss_descriptor tss_descriptor;
 
 struct tss {
     uint32_t reserved;

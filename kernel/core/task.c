@@ -80,17 +80,16 @@ void preempt_sys()
 void setup_tss()
 {
     disable_irq();
-    struct tss_descriptor *tss_desc = &_tss_descriptor + (uint64_t) KERNEL_VMA;
-    tss_desc->limit15_0 = sizeof tss;
-    tss_desc->base_addr23_0 = (uint64_t)(&tss) & 0xFFFFFF;
+    tss_descriptor.limit15_0 = sizeof tss;
+    tss_descriptor.base_addr23_0 = (uint64_t)(&tss) & 0xFFFFFF;
     // tss must be available, it will automatically change to busy when loaded
-    tss_desc->type = TSS_AVAILABLE;
-    tss_desc->limit19_16 = 0;
-    tss_desc->avl = 1;
-    tss_desc->base31_24 = ((uint64_t)(&tss) >> 24) & 0xFF;
-    tss_desc->base63_32 = ((uint64_t)(&tss) >> 32) & 0xFFFFFFFF;
-    tss_desc->zero = 0;
-    tss_desc->present = 1;
+    tss_descriptor.type = TSS_AVAILABLE;
+    tss_descriptor.limit19_16 = 0;
+    tss_descriptor.avl = 1;
+    tss_descriptor.base31_24 = ((uint64_t)(&tss) >> 24) & 0xFF;
+    tss_descriptor.base63_32 = ((uint64_t)(&tss) >> 32) & 0xFFFFFFFF;
+    tss_descriptor.zero = 0;
+    tss_descriptor.present = 1;
     __asm__ volatile("push %rax");
     __asm__ volatile("movw $0x28, %ax");
     __asm__ volatile("ltr %ax");

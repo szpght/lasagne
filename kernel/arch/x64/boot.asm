@@ -6,7 +6,7 @@ CHECKSUM      equ  -(MAGIC + ARCHITECTURE + HEADER_LENGTH)
 
 PAGE_PRESENT    equ 1 << 0
 PAGE_RW         equ 1 << 1
-PAGE_HUGE        equ 1 << 7
+PAGE_HUGE       equ 1 << 7
 
 CR0_PAGING      equ 1 << 31
 CRO_WRITE_PROT  equ 1 << 16
@@ -18,6 +18,9 @@ CR4_SMEP        equ 1 << 20
 IA32_EFER       equ 0xC0000080
 IA32_EFER_LME   equ 1 << 8
 IA32_EFER_NXE   equ 1 << 11
+
+extern _KERNEL_VMA
+
 
 section .multiboot
 align 4
@@ -47,37 +50,28 @@ pdpth:
 pd:
     times 4096 db 0
 
-; set GDT
-GDT64:                           ; Global Descriptor Table (64-bit).
-    .null: equ $ - GDT64         ; The null descriptor.
-    dw 0                         ; Limit (low).
-    dw 0                         ; Base (low).
-    db 0                         ; Base (middle)
-    db 0                         ; Access.
-    db 0                         ; Granularity.
-    db 0                         ; Base (high).
-    .code: equ $ - GDT64         ; The code descriptor.
+; temporary GDT
+GDT:
+    .null: equ $ - GDT           ; The null descriptor.
+    dq 0
+    .code: equ $ - GDT           ; The code descriptor.
     dw 0                         ; Limit (low).
     dw 0                         ; Base (low).
     db 0                         ; Base (middle)
     db 10011010b                 ; Access (exec/read).
     db 00100000b                 ; Granularity.
     db 0                         ; Base (high).
-    .data: equ $ - GDT64         ; The data descriptor.
+    .data: equ $ - GDT           ; The data descriptor.
     dw 0                         ; Limit (low).
     dw 0                         ; Base (low).
     db 0                         ; Base (middle)
     db 10010010b                 ; Access (read/write).
     db 00000000b                 ; Granularity.
     db 0                         ; Base (high).
-    .tss: equ $ - GDT64
-    times 16 db 0 ; will be filled at runtime
-    .pointer:                    ; The GDT-pointer.
-    dw $ - GDT64 - 1             ; Limit.
+    .pointer:
+    dw $ - GDT - 1
     .base_pointer:
-    dq GDT64                     ; Base.
-global _tss_descriptor;
-_tss_descriptor equ GDT64 + GDT64.tss
+    dq GDT
 
 ; this function maps first 1 GiB of memory 
 ; at 0x0000000000000000 and 0xFFFF800000000000
@@ -169,8 +163,8 @@ _start:
     or eax, CR0_PAGING | CRO_WRITE_PROT
     mov cr0, eax
 
-    lgdt [GDT64.pointer]
-    jmp GDT64.code:_start64
+    lgdt [GDT.pointer]
+    jmp GDT.code:_start64
 
 
     .no_amd64:
@@ -206,30 +200,27 @@ _start:
 
 [BITS 64]
 _start64:
-    ; jump to high memory
-    extern _KERNEL_VMA
-    mov rax, .high_memory
-    add rax, _KERNEL_VMA
-    jmp rax
+    jmp _starthigh64
 
-    ; enable additional protections
-    mov rax, cr4
-    or rax, CR4_PGE | CR4_SMEP
-    mov cr4, rax
 
-    .high_memory:
-    ; update GDT with upper-half address
-    add QWORD [GDT64.base_pointer], _KERNEL_VMA
+section .text
+_starthigh64:
+    ; set final GDT
     lgdt [GDT64.pointer]
-
-    mov rsp, stack_top
-    mov rbp, rsp
     mov ax, GDT64.data
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
     mov ss, ax
+
+    ; enable global page support
+    mov rax, cr4
+    or rax, CR4_PGE
+    mov cr4, rax
+
+    mov rsp, stack_top
+    mov rbp, rsp
 
     extern initialize
     mov rax, initialize
@@ -238,3 +229,46 @@ _start64:
     .halt:
     hlt
     jmp .halt
+
+
+section .data
+GDT64:                           ; Global Descriptor Table (64-bit).
+    .null: equ $ - GDT64         ; The null descriptor.
+    dq 0
+    .code: equ $ - GDT64         ; The code descriptor.
+    dw 0                         ; Limit (low).
+    dw 0                         ; Base (low).
+    db 0                         ; Base (middle)
+    db 10011010b                 ; Access (exec/read).
+    db 00100000b                 ; Granularity.
+    db 0                         ; Base (high).
+    .data: equ $ - GDT64         ; The data descriptor.
+    dw 0                         ; Limit (low).
+    dw 0                         ; Base (low).
+    db 0                         ; Base (middle)
+    db 10010010b                 ; Access (read/write).
+    db 00000000b                 ; Granularity.
+    db 0                         ; Base (high).
+    .usercode: equ $ - GDT64     ; The code descriptor.
+    dw 0                         ; Limit (low).
+    dw 0                         ; Base (low).
+    db 0                         ; Base (middle)
+    db 11111010b                 ; Access (exec/read).
+    db 00100000b                 ; Granularity.
+    db 0                         ; Base (high).
+    .userdata: equ $ - GDT64     ; The data descriptor.
+    dw 0                         ; Limit (low).
+    dw 0                         ; Base (low).
+    db 0                         ; Base (middle)
+    db 11110010b                 ; Access (read/write).
+    db 00000000b                 ; Granularity.
+    db 0                         ; Base (high).
+    .tss: equ $ - GDT64
+    times 16 db 0 ; will be filled at runtime
+
+    .pointer:
+    dw $ - GDT64 - 1
+    dq GDT64
+
+global tss_descriptor
+tss_descriptor equ GDT64 + GDT64.tss

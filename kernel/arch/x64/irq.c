@@ -141,7 +141,7 @@ void generic_exception_handler(struct irq_state *regs, uint64_t error_code)
     };
 
     printk("Exception #%ld occured: %s\n", regs->irq, exception_name[regs->irq]);
-    if (idt_handler[regs->irq].flags | INT_HANDLER_ERRORCODE) {
+    if (idt_handler[regs->irq].flags & INT_HANDLER_ERRORCODE) {
         printk("Error code %lx\n", error_code);
     }
     printk("RAX = %lx    RBX = %lx    RCX = %lx\n", regs->rax, regs->rbx, regs->rcx);

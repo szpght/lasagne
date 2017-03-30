@@ -74,12 +74,14 @@ static void special_char(uint32_t c)
 
 static void put_char(uint32_t c)
 {
+    if (tty_state.col == tty_state.width) {
+        line_up();
+        tty_state.col = 0;
+    }
     uint16_t ch = tty_state.style.fg << 8 | tty_state.style.bg << 12 | c;
     tty_buffer[tty_state.row * tty_state.width + tty_state.col] = ch;
     tty_state.buffer[tty_state.buffer_row * tty_state.width + tty_state.col] = ch;
-    tty_state.col = (tty_state.col + 1) % tty_state.width;
-    if (tty_state.col == 0)
-        line_up();
+    tty_state.col += 1;
 }
 
 void tty_putchar(uint32_t c)

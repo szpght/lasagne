@@ -76,6 +76,14 @@ handler:
     ; check if interrupt pushes error code
     test QWORD [idt_handler + rbx + 8], INT_HANDLER_ERRORCODE
 
+    jmp not_task_switch
+
+    global leave_interrupt_handler
+    leave_interrupt_handler:
+    ; clear zero flag
+    xor rax, rax
+
+    not_task_switch:
     pop rax
     pop rbx
     pop rcx

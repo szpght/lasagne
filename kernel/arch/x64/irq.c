@@ -49,6 +49,21 @@ void initialize_pic()
     outb(PIC2_DATA, 0xFF);
 }
 
+void pic_flip_irq(int irq)
+{
+    char port;
+    if (irq >= 8) {
+        port = PIC2_DATA;
+        irq -= 8;
+    }
+    else {
+        port = PIC1_DATA;
+    }
+    char mask = inb(port);
+    mask ^= 1 << irq;
+    outb(port, mask);
+}
+
 void compile_idt(struct idt_entry *dest, struct idt_model *src)
 {
     dest->offset_low = src->offset;
@@ -173,4 +188,9 @@ void set_handlers()
 
 
     set_irq_handler(0x30, syscall_stub, INT_HANDLER_USER);
+}
+
+void irq_eoi()
+{
+    outb(PIC1_CMD, PIC_EOI);
 }

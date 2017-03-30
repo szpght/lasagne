@@ -9,6 +9,7 @@ OBJS             =              \
 	arch/x64/irq_asm.o          \
 	arch/x64/multiboot.o        \
 	arch/x64/io/tty.o           \
+	arch/x64/io/pit.o           \
 	arch/x64/io/ports.o         \
 	core/printk.o               \
 	core/task.o                 \

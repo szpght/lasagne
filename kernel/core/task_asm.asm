@@ -53,5 +53,4 @@ switch_task_int:
     ; restore rsp of new task
     mov rsp, QWORD rsi
     
-    switch_task_int_return:
     ret

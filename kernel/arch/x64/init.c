@@ -6,6 +6,7 @@
 #include <mm/pages.h>
 #include <irq.h>
 #include <task.h>
+#include <io/pit.h>
 
 void initialize(void *multiboot_information)
 {
@@ -14,13 +15,14 @@ void initialize(void *multiboot_information)
     initialize_irq();
     parse_multiboot(multiboot_information);
     initialize_tasks();
-    printk("SYSTEM BOOTED\n");
+    pit_initialize();
+    printk("SYSTEM BOOT COMPLETE\n");
+
     int counter = 0;
     while (1) {
-        for (int i = 0; i < 50000000; ++i) {
+        for (int i = 0; i < 5000000; ++i) {
             __asm__ volatile ("nop");
         }
         printk("A %d\n", ++counter);
-        __asm__ volatile ("int $48");
     }
 }

@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define RFLAGS_IF 1 << 9
+#define RFLAGS_IF (1 << 9)
 #define DEFAULT_STACK_SIZE 8192
 
 #define TSS_AVAILABLE 9;
@@ -92,4 +92,4 @@ void setup_tss();
 
 void switch_task_sys(uint64_t **old_rsp, uint64_t *new_rsp);
 void switch_task_int(uint64_t **old_rsp, uint64_t *new_rsp);
-void switch_task_int_return();
+void leave_interrupt_handler();

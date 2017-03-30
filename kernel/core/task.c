@@ -17,11 +17,10 @@ void do_sth()
 {
     static int counter = 0;
     while (1) {
-        for (int i = 0; i < 50000000; ++i) {
+        for (int i = 0; i < 5000000; ++i) {
             __asm__ volatile ("nop");
         }
         printk("B %d\n", ++counter);
-        __asm__ volatile ("int $48");
     }
 }
 
@@ -58,12 +57,12 @@ struct thread *create_thread(struct task *task, void *main)
     uint64_t *place_for_rsp = --thread->rsp; // rsp
     *(--thread->rsp) = RFLAGS_IF; // rflags
     *(--thread->rsp) = 0x8; // cs
-    *(--thread->rsp) = (uint64_t) switch_task_int_return;
+    *(--thread->rsp) = (uint64_t) main;
     *(--thread->rsp) = 0; // interrupt number
     for (int i = 0; i < 15; ++i) {
         *(--thread->rsp) = 0;
     }
-    *(--thread->rsp) = (uint64_t) main;
+    *(--thread->rsp) = (uint64_t) leave_interrupt_handler;
     *place_for_rsp = (uint64_t) thread->rsp;
 
     thread->state = THREAD_RUNNING;

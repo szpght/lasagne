@@ -97,3 +97,5 @@ void reset_irq_handler(int irq_number);
 void generic_exception_handler(struct irq_state *registers, uint64_t error_code);
 void set_handlers();
 uint64_t get_cr2();
+void irq_eoi();
+void pic_flip_irq(int irq);

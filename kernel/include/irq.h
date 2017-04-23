@@ -78,6 +78,16 @@ struct irq_state
     uint64_t r14;
     uint64_t r15;
     uint64_t irq;
+    void *irq_stack_frame;
+} __attribute__((packed));
+
+struct irq_stack_frame
+{
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
+    uint64_t rsp;
+    uint64_t ss;
 } __attribute__((packed));
 
 

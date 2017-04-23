@@ -13,11 +13,16 @@ void syscall_stub(struct irq_state *registers)
     preempt_int();
 }
 
+static void set_idt()
+{
+    load_idt(sizeof(struct idt_entry) * INT_VECTORS_NUMBER, idt);
+}
+
 void initialize_irq()
 {
     initialize_pic();
     create_idt();
-    load_idt(sizeof(struct idt_entry) * INT_VECTORS_NUMBER, idt);
+    set_idt();
     enable_irq();
     set_handlers();
 }
@@ -155,15 +160,22 @@ void generic_exception_handler(struct irq_state *regs, uint64_t error_code)
         "Security Exception"
     };
 
+    disable_irq();
+    void *irq_stack_frame = &(regs->irq_stack_frame);
     printk("Exception #%ld occured: %s\n", regs->irq, exception_name[regs->irq]);
     if (idt_handler[regs->irq].flags & INT_HANDLER_ERRORCODE) {
         printk("Error code %lx\n", error_code);
+        irq_stack_frame += 8;
     }
+    struct irq_stack_frame *irq_frame = irq_stack_frame;
     printk("RAX = %lx    RBX = %lx    RCX = %lx\n", regs->rax, regs->rbx, regs->rcx);
     printk("RDX = %lx    RSI = %lx    RDI = %lx\n", regs->rdx, regs->rsi, regs->rdi);
     printk("RBP = %lx     R8 = %lx     R9 = %lx\n", regs->rbp, regs->r8, regs->r9);
     printk("R10 = %lx    R11 = %lx    R12 = %lx\n", regs->r10, regs->r11, regs->r12);
     printk("R13 = %lx    R14 = %lx    R15 = %lx\n", regs->r13, regs->r14, regs->r15);
+    printk("RIP = %lx     CS = %lx\n", irq_frame->rip, irq_frame->cs);
+    printk("RSP = %lx     SS = %lx\n", irq_frame->rsp, irq_frame->ss);
+    printk("RFLAGS = %lx\n", irq_frame->rflags);
     printk("CR2 = %lx\n", get_cr2());
     printk("System halted\n");
 
@@ -180,7 +192,7 @@ void set_handlers()
     for (int i = 8 ; i <= 14; ++i) {
         set_irq_handler(i, generic_exception_handler, INT_HANDLER_ERRORCODE);
     }
-    for (int i = 16 ; i <= 20; ++i) {
+    for (int i = 16 ; i <= 79; ++i) {
         set_irq_handler(i, generic_exception_handler, 0);
     }
     set_irq_handler(17, syscall_stub, INT_HANDLER_ERRORCODE);

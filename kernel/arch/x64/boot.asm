@@ -205,22 +205,18 @@ _start64:
 
 section .text
 _starthigh64:
+    mov rsp, stack_top
+    mov rbp, rsp
+
     ; set final GDT
-    lgdt [GDT64.pointer]
-    mov ax, GDT64.data
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
+    call reload_gdt
 
     ; enable global page support
     mov rax, cr4
     or rax, CR4_PGE
     mov cr4, rax
 
-    mov rsp, stack_top
-    mov rbp, rsp
+
 
     extern initialize
     mov rax, initialize
@@ -229,6 +225,17 @@ _starthigh64:
     .halt:
     hlt
     jmp .halt
+
+global reload_gdt
+reload_gdt:
+    lgdt [GDT64.pointer]
+    mov ax, GDT64.data
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+    ret
 
 
 section .data

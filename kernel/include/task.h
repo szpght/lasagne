@@ -31,8 +31,8 @@ struct tss_descriptor {
     uint8_t limit19_16 : 4;
     uint8_t avl : 4; // includes 2 reserved 0 bits and 1 byte granularity
     uint8_t base31_24;
-    uint64_t base63_32;
-    uint64_t zero;
+    uint32_t base63_32;
+    uint32_t zero;
 } __attribute__((packed));
 
 

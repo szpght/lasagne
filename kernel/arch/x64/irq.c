@@ -6,12 +6,7 @@
 
 struct idt_entry idt[INT_VECTORS_NUMBER];
 struct idt_handler idt_handler[INT_VECTORS_NUMBER];
-
-void syscall_stub(struct irq_state *registers)
-{
-    printk("Syscall called, rdi=%lx\n", registers->rdi);
-    preempt_int();
-}
+long spurious_interrupts_count;
 
 static void set_idt()
 {
@@ -195,14 +190,16 @@ void set_handlers()
     for (int i = 16 ; i <= 79; ++i) {
         set_irq_handler(i, generic_exception_handler, 0);
     }
-    set_irq_handler(17, syscall_stub, INT_HANDLER_ERRORCODE);
-    set_irq_handler(30, syscall_stub, INT_HANDLER_ERRORCODE);
 
-
-    set_irq_handler(0x30, syscall_stub, INT_HANDLER_USER);
+   set_irq_handler(0x27, spurious_interrupt_handler, 0);
 }
 
 void irq_eoi()
 {
     outb(PIC1_CMD, PIC_EOI);
+}
+
+void spurious_interrupt_handler()
+{
+    spurious_interrupts_count += 1;
 }

@@ -109,3 +109,4 @@ void set_handlers();
 uint64_t get_cr2();
 void irq_eoi();
 void pic_flip_irq(int irq);
+void spurious_interrupt_handler();

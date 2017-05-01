@@ -7,6 +7,10 @@ CHECKSUM      equ  -(MAGIC + ARCHITECTURE + HEADER_LENGTH)
 PAGE_PRESENT    equ 1 << 0
 PAGE_RW         equ 1 << 1
 PAGE_HUGE       equ 1 << 7
+PAGE_GLOBAL     equ 1 << 8
+PAGE_NX         equ 1 << 63
+MAGIC_NX        equ 1 << 31
+
 
 CR0_PAGING      equ 1 << 31
 CRO_WRITE_PROT  equ 1 << 16
@@ -18,6 +22,8 @@ CR4_SMEP        equ 1 << 20
 IA32_EFER       equ 0xC0000080
 IA32_EFER_LME   equ 1 << 8
 IA32_EFER_NXE   equ 1 << 11
+
+REFCOUNT_OFFSET equ 52
 
 extern _KERNEL_VMA
 
@@ -33,7 +39,7 @@ align 4
 section .bss
 align 4
 stack_bottom:
-resb 16384
+resb 8192
 stack_top:
 
 
@@ -43,12 +49,21 @@ align 4096
 global _pml4t
 _pml4t:
     times 4096 db 0
-pdptl:
+pdpt:
     times 4096 db 0
-pdpth:
+identity_pd:
+%assign i (PAGE_PRESENT | PAGE_RW | PAGE_HUGE)
+%rep 512
+    dq i
+%assign i (i + 2 * 1024 * 1024)
+%endrep
+kernel_pd:
     times 4096 db 0
-pd:
-    times 4096 db 0
+
+temp_stack:
+    times 32 db 0
+temp_stack_end:
+
 
 ; temporary GDT
 GDT:
@@ -73,12 +88,13 @@ GDT:
     .base_pointer:
     dq GDT
 
-; this function maps first 1 GiB of memory 
-; at 0x0000000000000000 and 0xFFFF800000000000
 global _start
 _start:
     ; store multiboot2 information pointer
     mov edi, ebx
+
+    ; setup temporary stack
+    mov esp, temp_stack_end
 
     ; check if running on amd64
 
@@ -112,40 +128,158 @@ _start:
     ; set _pml4t address
     mov eax, _pml4t
     mov cr3, eax
-    
+
+
+
+    ; SETUP PAGING
+    extern _KERNEL_TEXT_PHYS
+    extern _KERNEL_EH_FRAME_PHYS
+    extern _KERNEL_RODATA_PHYS
+    extern _KERNEL_DATA_PHYS
+    extern _KERNEL_BSS_PHYS
+    extern _KERNEL_END_PHYS
+
+    %define Kernel_end esi
+    mov Kernel_end, _KERNEL_END_PHYS
+
+
     ; setup level-4 table
+    ; point first and last entry to pdpt
     mov eax, _pml4t
-    mov DWORD [eax], pdptl
-    or DWORD [eax], PAGE_PRESENT | PAGE_RW
+    mov ebx, pdpt
+    or ebx, PAGE_PRESENT | PAGE_RW
+    mov DWORD [eax], ebx
+    mov DWORD [eax + 8 * 511], ebx
+    ; set refcount of pdpt to 1
+    mov ebx, 1 << (REFCOUNT_OFFSET - 32)
+    add DWORD [eax + 8 * 511 + 4], ebx
+
+    ; point entry 510 to self
+    mov ebx, eax
+    or ebx, PAGE_PRESENT | PAGE_RW
+    mov DWORD [eax + 8 * 510], ebx
+
+    ; setup pdpt
+    ; entry 0 points to identity pd
+    mov eax, pdpt
+    mov ebx, identity_pd
+    or ebx, PAGE_PRESENT | PAGE_RW
+    mov DWORD [eax], ebx
     
-    ; move level-4 pointer to last chunk of higher half memory
-    add eax, 8 * 511
+    ; entry 510 points to kernel pd
+    mov ebx, kernel_pd
+    or ebx, PAGE_PRESENT | PAGE_RW
+    mov DWORD [eax + 8 * 510], ebx
 
-    mov DWORD [eax], pdpth
-    or DWORD [eax], PAGE_PRESENT | PAGE_RW
+    ; calculate number of page tables needed for kernel
+    %define Kernel_pts ebp
 
-    ; set first entry in low PDPE to point at pd
-    mov eax, pdptl
-    mov DWORD [eax], pd
-    add DWORD [eax], PAGE_PRESENT | PAGE_RW
+    mov eax, _KERNEL_END_PHYS
+    cdq ; convert double to quad
+    mov ebx, 2 * 1024 * 1024
+    div ebx
+    ; add one page table if remainder present
+    test edx, edx
+    jz .round_number
+    inc eax
 
-    ; set second entry from the end in high PDPE to point at pd
-    mov eax, pdpth
-    add eax, 8 * 510
-    mov DWORD [eax], pd
-    add DWORD [eax], PAGE_PRESENT | PAGE_RW
+    .round_number:
+    mov Kernel_pts, eax
 
-    ; map first 1 GiB in PD because why not
-    mov eax, pd
-    mov ebx, PAGE_PRESENT | PAGE_RW | PAGE_HUGE
-    mov ecx, 512
-    .map_gib:
-    mov [eax], ebx
+    ; set refcount of kernel pd in pdpt
+    mov ebx, Kernel_pts
+    shl ebx, REFCOUNT_OFFSET - 32
+    add DWORD [pdpt + 8 * 510 + 4], ebx
+
+    ; store count of bytes remaining in last pt in eax
+    mov eax, edx
+    ; calculate count of pt entries in last pt
+    shr eax, 12
+    ; calculate number to add in last pd
+    shl eax, REFCOUNT_OFFSET - 32
+
+    ; fill kernel pd
+    mov ecx, Kernel_pts
+    mov ebx, Kernel_end
+    or ebx, PAGE_PRESENT | PAGE_RW
+    mov edx, kernel_pd
+    .fill_kernel_pd:
+    mov DWORD [edx], ebx
+    add ebx, 4096
+    add edx, 8
+    loop .fill_kernel_pd
+
+    ; set refcount in last entry
+    add DWORD [edx - 4], eax
+
+    ; now the great moment of allocating and filling kernel page tables
+    ; at this moment we have following variables:
+    ; Kernel_end - pointing at the end of the kernel according to ld
+    ; Kernel_pts - number of needed page tables
+
+    ; registers that will be used
+    ; eax - current page table entry address
+    ; ecx - lower 32 bits of entry to be written
+    ; ebx - upper 32 bits of entry to be written
+    ; edx - beginning of next section
+
+    mov eax, Kernel_end
+
+    ; first 1 MiB of memory
+    mov ebx, MAGIC_NX
+    mov ecx, PAGE_PRESENT | PAGE_RW | PAGE_GLOBAL
+    mov edx, _KERNEL_TEXT_PHYS
+    call .map_pages
+
+    ; .text section
+    mov ecx, edx
+    xor ebx, ebx
+    or ecx, PAGE_PRESENT | PAGE_GLOBAL
+    mov edx, _KERNEL_EH_FRAME_PHYS
+    call .map_pages
+
+    ; .eh_frame section
+    mov ecx, edx
+    mov ebx, MAGIC_NX
+    or ecx, PAGE_PRESENT | PAGE_RW | PAGE_GLOBAL
+    mov edx, _KERNEL_RODATA_PHYS
+    call .map_pages
+
+    ; .rodata section
+    mov ecx, edx
+    mov ebx, MAGIC_NX
+    or ecx, PAGE_PRESENT | PAGE_GLOBAL
+    mov edx, _KERNEL_DATA_PHYS
+    call .map_pages
+
+    ; .data section
+    mov ecx, edx
+    mov ebx, MAGIC_NX
+    or ecx, PAGE_PRESENT | PAGE_RW | PAGE_GLOBAL
+    mov edx, _KERNEL_BSS_PHYS
+    call .map_pages
+
+    ; .bss section
+    mov ecx, edx
+    mov ebx, MAGIC_NX
+    or ecx, PAGE_PRESENT | PAGE_RW | PAGE_GLOBAL
+    mov edx, _KERNEL_END_PHYS
+    call .map_pages
+
+    ; clean the rest of the pt
+    mov ecx, 0
+    ; calculate end address of page tables
+    mov edx, Kernel_pts
+    shl edx, 12
+    add edx, Kernel_end
+    ; do the cleaning
+    .cleaning:
+    mov DWORD [eax], 0
+    mov DWORD [eax + 4], 0
     add eax, 8
-    add ebx, 2 * 1024 * 1024
-    dec ecx
-    test ecx, ecx
-    jnz .map_gib
+    cmp eax, edx
+    jne .cleaning
+
 
     ; enable PAE
     mov eax, cr4
@@ -166,6 +300,16 @@ _start:
     lgdt [GDT.pointer]
     jmp GDT.code:_start64
 
+    ; FUNCTIONS SECTION
+
+    .map_pages:
+    mov DWORD [eax], ecx
+    mov DWORD [eax + 4], ebx
+    add eax, 8
+    add ecx, 4096
+    cmp edx, ecx
+    jge .map_pages
+    ret
 
     .no_amd64:
     mov ecx, 80 * 25
@@ -215,8 +359,6 @@ _starthigh64:
     mov rax, cr4
     or rax, CR4_PGE
     mov cr4, rax
-
-
 
     extern initialize
     mov rax, initialize

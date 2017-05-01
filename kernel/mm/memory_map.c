@@ -60,4 +60,7 @@ void mem_map_sanitize()
             area->end -= area->end % 4096;
         }
     }
+
+    // set physical end
+    mem_map.physical_end = mem_map.area[mem_map.count - 1].end;
 }

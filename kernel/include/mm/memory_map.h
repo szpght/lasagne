@@ -41,6 +41,7 @@ struct area {
 struct memory_map {
     int count;
     struct area area[MAP_MAX];
+    uint64_t physical_end;
 };
 
 extern struct memory_map mem_map;

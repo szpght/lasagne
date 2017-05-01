@@ -12,6 +12,24 @@ struct allocator frame_alloc;
 #define alloc (&frame_alloc)
 
 
+void initialize_memory()
+{
+    printk("Mapping physical memory to kernel address space... ");
+    frame_init(mem_map.physical_end);
+    printk("mapped\n");
+    mark_free();
+}
+
+void mark_free()
+{
+    printk("Final memory map:\n");
+    for (int i = 0; i < mem_map.count; ++i) {
+        struct area area = mem_map.area[i];
+        printk("%lx - %lx\n", area.begin, area.end);
+        add_free_space((void*) area.begin, area.end - area.begin);
+    }
+}
+
 void frame_print_info()
 {
     allocator_print_status(alloc);

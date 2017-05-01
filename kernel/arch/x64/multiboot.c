@@ -21,7 +21,7 @@ void parse_multiboot(void *mb)
         //printk("Tag hit, type %u, size %u, addr %lx\n", mbt->type, mbt->size, mbt);
         switch (mbt->type) {
         case MB_MEMORY_MAP:
-            initialize_memory(mbt);
+            parse_memory_map(mbt);
             break;
         }
         mb += tag_size;
@@ -29,33 +29,10 @@ void parse_multiboot(void *mb)
     }
 }
 
-void initialize_memory(void *mb)
+void parse_memory_map(void *mb)
 {
-    size_t size = (size_t) physical_end(mb);
-    printk("Mapping physical memory to kernel address space... ");
-    frame_init(size);
-    printk("mapped\n");
     fill_memory_map(mb);
-    mark_free();
-}
-
-void *physical_end(void *mb)
-{
-    void *end = 0;
-    struct mb_memmap *mm = mb;
-
-    int entries = (mm->size - sizeof(*mm)) / mm->entry_size;    
-    struct mb_memmap_entry *entry = mb + sizeof(*mm);
-    for (int i = 0; i < entries; ++i) {
-        void *current = (void*)entry->base_addr + entry->length;
-        printk ("memory area: base=%lx, size=%ld KiB, type=%d\n",
-            entry->base_addr, entry->length / 1024, entry->type);
-        if (current > end) {
-            end = current;
-        }
-        ++entry;
-    }
-    return end;
+    mem_map_sanitize();
 }
 
 void fill_memory_map(void *mb)
@@ -70,15 +47,5 @@ void fill_memory_map(void *mb)
             mem_map_add_area(entry->base_addr, entry->base_addr + entry->length);
         }
         ++entry;
-    }
-}
-
-void mark_free()
-{
-    printk("Final memory map:\n");
-    for (int i = 0; i < mem_map.count; ++i) {
-        struct area area = mem_map.area[i];
-        printk("%lx - %lx\n", area.begin, area.end);
-        add_free_space((void*) area.begin, area.end - area.begin);
     }
 }

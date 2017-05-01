@@ -14,6 +14,7 @@ void initialize(void *multiboot_information)
     tty_set_color(TTY_COLOR_LIGHT_GREEN, TTY_COLOR_BLACK);
     initialize_irq();
     parse_multiboot(multiboot_information);
+    initialize_memory();
     initialize_tasks();
     pit_initialize();
     printk("SYSTEM BOOT COMPLETE\n");

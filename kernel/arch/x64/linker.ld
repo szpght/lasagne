@@ -26,6 +26,11 @@ SECTIONS
         *(.text)
     }
 
+    .eh_frame ALIGN(4K) : AT(ADDR(.eh_frame) - _KERNEL_VMA)
+    {
+        *(.eh_frame)
+    }
+
     .rodata ALIGN(4K) : AT(ADDR(.rodata) - _KERNEL_VMA)
     {
         *(.rodata)
@@ -43,10 +48,15 @@ SECTIONS
         *(.bss)
     }
 
+    _KERNEL_END = ALIGN(4K);
+
     .comment ALIGN(4K) : AT(ADDR(.comment) - _KERNEL_VMA)
     {
         *(.comment)
     }
 
-    _KERNEL_END = ALIGN(4K);
+    .scratchpad ALIGN(4K) : AT(ADDR(.scratchpad) - _KERNEL_VMA)
+    {
+        . += 2M;
+    }
 }

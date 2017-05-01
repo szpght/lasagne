@@ -5,15 +5,8 @@
 
 void parse_multiboot(void *mb)
 {
-    // copy multiboot information to NULL
-    uint8_t *dest = KERNEL_VMA;
-    uint8_t *src = mb;
+    mb += (uint64_t) KERNEL_VMA;
     uint32_t size = ((struct mb_header*) mb)->total_size;
-
-    for (uint32_t i = 0; i < size; ++i) {
-        dest[i] = src[i];
-    }
-    mb = KERNEL_VMA;
 
     printk("Mutiboot information size: %u\n", size);
     mb += 8;
@@ -34,7 +27,6 @@ void parse_multiboot(void *mb)
         mb += tag_size;
         size -= tag_size;
     }
-    //printk("End of multiboot information\n");
 }
 
 void initialize_memory(void *mb)

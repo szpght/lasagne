@@ -37,4 +37,5 @@ struct mb_memmap_entry {
 void parse_multiboot(void *mb);
 void initialize_memory(void *mb);
 void *physical_end(void *mb);
-void mark_free(void *mb);
+void mark_free();
+void fill_memory_map(void *mb);

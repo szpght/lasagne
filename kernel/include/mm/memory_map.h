@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 // beginning of kernel memory in physical address space
 extern void *_KERNEL_LMA;
@@ -29,3 +30,20 @@ extern struct pml4te _pml4t;
 #define PML4T (&_pml4t)
 //pml4t in the form of pointer array
 #define PML4T_P ((void **)PML4T)
+
+#define MAP_MAX 32
+
+struct area {
+    uint64_t begin;
+    uint64_t end;
+};
+
+struct memory_map {
+    int count;
+    struct area area[MAP_MAX];
+};
+
+extern struct memory_map mem_map;
+
+void mem_map_add_area(uint64_t begin, uint64_t end);
+void mem_map_sanitize();

@@ -35,7 +35,8 @@ void initialize_memory(void *mb)
     printk("Mapping physical memory to kernel address space... ");
     frame_init(size);
     printk("mapped\n");
-    mark_free(mb);
+    fill_memory_map(mb);
+    mark_free();
 }
 
 void *physical_end(void *mb)
@@ -57,7 +58,7 @@ void *physical_end(void *mb)
     return end;
 }
 
-void mark_free(void *mb)
+void fill_memory_map(void *mb)
 {
     struct mb_memmap *mm = mb;
 
@@ -65,9 +66,19 @@ void mark_free(void *mb)
     struct mb_memmap_entry *entry = mb + sizeof(*mm);
     for (int i = 0; i < entries; ++i) {
         if (entry->type == MB_RAM_AVAILABLE || entry->type == MB_RAM_ACPI) {
-            printk("Adding usable memory of size %ld at %lx\n", entry->length, entry->base_addr);
-            add_free_space((void*)entry->base_addr, entry->length);
+            printk("Adding usable memory of size %ld at %lx to map\n", entry->length, entry->base_addr);
+            mem_map_add_area(entry->base_addr, entry->base_addr + entry->length);
         }
         ++entry;
+    }
+}
+
+void mark_free()
+{
+    printk("Final memory map:\n");
+    for (int i = 0; i < mem_map.count; ++i) {
+        struct area area = mem_map.area[i];
+        printk("%lx - %lx\n", area.begin, area.end);
+        add_free_space((void*) area.begin, area.end - area.begin);
     }
 }

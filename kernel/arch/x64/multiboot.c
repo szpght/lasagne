@@ -5,7 +5,6 @@
 
 void parse_multiboot(void *mb)
 {
-    mb += (uint64_t) KERNEL_VMA;
     uint32_t size = ((struct mb_header*) mb)->total_size;
 
     printk("Mutiboot information size: %u\n", size);

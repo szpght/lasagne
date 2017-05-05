@@ -18,8 +18,8 @@ void initialize_irq()
     initialize_pic();
     create_idt();
     set_idt();
-    enable_irq();
     set_handlers();
+    enable_irq();
 }
 
 void initialize_pic()

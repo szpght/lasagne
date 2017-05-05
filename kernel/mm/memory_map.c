@@ -29,7 +29,7 @@ void mem_map_add_area(uint64_t begin, uint64_t end)
         }
     }
 
-    // if nothing overlaps, add interval to list keeping list sorted
+    // if nothing overlaps, add interval to list
     mem_map.area[mem_map.count].begin = begin;
     mem_map.area[mem_map.count].end = end;
     mem_map.count += 1;
@@ -59,6 +59,8 @@ void mem_map_sanitize()
         if (area->end % 4096) {
             area->end -= area->end % 4096;
         }
+        // TODO support areas smaller than 4K
+        assert(area->begin < area->end);
     }
 
     // set physical end

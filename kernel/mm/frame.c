@@ -1,118 +1,161 @@
-// physical frame allocator
-#include <mm/buddy.h>
 #include <mm/frame.h>
+#include <assert.h>
+#include <string.h>
+#include <stdbool.h>
 #include <mm/memory_map.h>
-#include <mm/pages.h>
-#include <multiboot.h>
-#include <stddef.h>
 #include <printk.h>
 
+struct allocator default_frame_allocator;
 
-struct allocator frame_alloc;
-#define alloc (&frame_alloc)
-
-
-void initialize_memory()
+void initialize_frame_allocation()
 {
-    printk("Mapping physical memory to kernel address space... ");
-    frame_init(mem_map.physical_end);
-    printk("mapped\n");
-    mark_free();
+    uint64_t end = mem_map.area[mem_map.count - 1].end;
+    alloc_init(&default_frame_allocator, KERNEL_END, end,
+               (void*) 0xFFFFFFFF80000000, (void*) 0xffffff7fffc00000);
+    print_frame_allocation_info();
 }
 
-void mark_free()
+void print_frame_allocation_info()
 {
-    printk("Final memory map:\n");
+    struct allocator *a = &default_frame_allocator;
+    printk("Begin: %lx\tEnd: %lx\n", a->begin, a->end);
+    printk("Size:  %ld KiB\nCapacity: %ld KiB\n", a->size / 1024, a->capacity / 1024);
+    printk("Free:  %ld KiB\n", a->free / 1024);
+}
+
+static int64_t intersection(uint64_t beginA, uint64_t endA, uint64_t beginB, uint64_t endB)
+{
+    uint64_t maxBegin = beginA > beginB ? beginA : beginB;
+    uint64_t minEnd = endA < endB ? endA : endB;
+
+    int64_t diff = minEnd - maxBegin;
+    return diff > 0 ? diff : 0;
+}
+
+void alloc_init(struct allocator *alloc, uint64_t begin, uint64_t end,
+                void *current_address, uint64_t *current_pte)
+{
+    assert(begin % PAGE_SIZE == 0);
+    assert(end % PAGE_SIZE == 0);
+    assert(end > begin);
+
+    alloc->free = 0;
+    // set free to amount of usable memory according to map
     for (int i = 0; i < mem_map.count; ++i) {
-        struct area area = mem_map.area[i];
-        printk("%lx - %lx\n", area.begin, area.end);
-        add_free_space((void*) area.begin, area.end - area.begin);
+        struct area *area = mem_map.area + i;
+        alloc->free += intersection(begin, end, area->begin, area->end);
     }
+
+    // set first relevant map entry index
+    for (int i = 0; i < mem_map.count; ++i) {
+        if (mem_map.area[i].end > begin) {
+            alloc->current_map_position = i;
+            break;
+        }
+    }
+
+    // move begin if starts in unavailable memory
+    if (begin < mem_map.area[alloc->current_map_position].begin) {
+        begin = mem_map.area[alloc->current_map_position].begin;
+    }
+
+    alloc->begin = begin;
+    alloc->end = end;
+    alloc->size = end - begin;
+    alloc->capacity = alloc->free;
+    alloc->current = NULL;
+    alloc->count = 0;
+    alloc->current_address = current_address;
+    alloc->current_pte = current_pte;
+    *alloc->current_pte = 3; // present, rw
 }
 
-void frame_print_info()
+static uint64_t extend(struct allocator *alloc)
 {
-    allocator_print_status(alloc);
+    // if begin reached end of current memory area, jump to next area
+    if (alloc->begin == mem_map.area[alloc->current_map_position].end) {
+        alloc->current_map_position += 1;
+        alloc->begin = mem_map.area[alloc->current_map_position].begin;
+    }
+    uint64_t frame = alloc->begin;
+    alloc->begin += 4096;
+    return frame;
 }
 
-void frame_init(size_t size)
+// gets physical address of currently mapped node
+static uint64_t current(struct allocator *alloc)
 {
-    // if you have < 2 MiB of RAM, you have bad luck
-    size_t alloc_size = 2 * 1024 * 1024;
-
-    while (alloc_size < size) {
-        alloc_size *= 2;
-    }
-    map_physical(size);
-    allocator_init(alloc, KERNEL_PHYS, alloc_size, PAGE_SIZE, KERNEL_END_PHYS);
+    return *alloc->current_pte & ~0xFFF;
 }
 
-void add_free_space(void *base, size_t size)
+static struct allocator_node *map(struct allocator *alloc, uint64_t addr)
 {
-    void *start = base + (uint64_t)KERNEL_PHYS;
-    void *end = start + size;
-
-    // if area starts in kernel memory, move start after kernel memory
-    if (start >= KERNEL_PHYS && start < KERNEL_END_PHYS) {
-        start = KERNEL_END_PHYS;
+    __asm__ volatile ("invlpg (%0)" : : "b"(alloc->current_address) : "memory");
+    if (!addr) {
+        return NULL;
     }
-
-    // if area ends in kernel memory, there's no point mapping it
-    // as there's nothing to map before kernel
-    if (end >= KERNEL_PHYS && end < KERNEL_END_PHYS) {
-        return;
-    }
-
-    allocator_init_free(alloc, start, end);
+    *alloc->current_pte &= 0xFFF;
+    *alloc->current_pte |= addr;
+    return alloc->current_address;
 }
 
-void map_physical(size_t size)
+uint64_t alloc_frame(struct allocator *alloc)
 {
-    // setup pdpt for physical memory
-    uint64_t *pdpt = KERNEL_END;
-    KERNEL_END += 4096;
-
-    // write pdpt to pml4t
-    PML4T_P[256] = (void*)pdpt - (uint64_t)KERNEL_VMA;
-    PML4T[256].p = 1;
-    PML4T[256].rw = 1;
-
-    // clean pdpt
-    for (int i = 0; i < 512; ++i) {
-        pdpt[i] = 0;
+    if (alloc->free == 0) {
+        return 0;
     }
 
-    // fill as many pd's as needed
-    uint64_t *pd = KERNEL_END;
-    int pages = 0;
-    size_t filled_size = 0;
-    while (filled_size < size) {
-        *pd = filled_size | PG_PRESENT | PG_RW | PG_HUGE;
-        ++pd;
-        ++pages;
-        filled_size += 2 * 1024 * 1024;
+    uint64_t frame = -1;
+
+    if (alloc->count > 1) {
+        frame = alloc->current->frames[alloc->count - 2];
+        alloc->count -= 1;
     }
 
-    // fill the rest of pd
-    int rest = 512 - pages % 512;
-    for (int i = 0; i < rest; ++i) {
-        *pd = 0;
-        ++pd;
+    else if (alloc->count == 1) {
+        frame = current(alloc);
+        alloc->current = map(alloc, alloc->current->next);
+        if (alloc->current) {
+            alloc->count = 512;
+        }
+        else {
+            alloc->count = 0;
+        }
     }
 
-    int number_of_pds = ((void *)pd - KERNEL_END) / 4096;
-    pd = KERNEL_END - (uint64_t)KERNEL_VMA;
-
-    // write pds to pdpt
-    for (int i = 0; i < number_of_pds; ++i) {
-        pdpt[i] = (uint64_t)pd | PG_PRESENT | PG_RW;
-        pd += 512;
+    else if (alloc->count == 0) {
+        frame = extend(alloc);
     }
 
-    KERNEL_END = (uint64_t)pd + KERNEL_VMA;
+    assert(frame != (uint64_t)-1);
 
-    // TODO move in more convenient place
-    // unmap identity paging
-    PML4T_P[0] = 0;
-    reload_paging();
+    alloc->free -= PAGE_SIZE;
+    return frame;
+}
+
+void dealloc_frame(struct allocator *alloc, uint64_t frame)
+{
+    assert(frame % 4096 == 0);
+    if (alloc->count == 0 || alloc->count == 512) {
+        uint64_t next = current(alloc);
+        alloc->current = map(alloc, frame);
+        alloc->current->next = next;
+        alloc->count = 1;
+    }
+    else {
+        alloc->current->frames[alloc->count - 1] = frame;
+        alloc->count += 1;
+    }
+    alloc->free += PAGE_SIZE;
+    assert(alloc->free <= alloc->size);
+}
+
+uint64_t get_frame()
+{
+    return alloc_frame(&default_frame_allocator);
+}
+
+void free_frame(uint64_t frame)
+{
+    dealloc_frame(&default_frame_allocator, frame);
 }

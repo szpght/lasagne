@@ -13,15 +13,14 @@ OBJS             =              \
 	arch/x64/io/ports.o         \
 	core/assert.o               \
 	core/printk.o               \
-	core/task.o                 \
 	core/task_asm.o             \
 	libc/string.o               \
-	mm/alloc.o                  \
-	mm/buddy.o                  \
 	mm/frame.o                  \
 	mm/memory_map.o             \
-	mm/pages.o                  \
-
+#	mm/pages.o                  \
+#	mm/alloc.o                  \
+#	mm/buddy.o                  \
+#	core/task.o                 \
 
 
 KERNEL    = kernel.a

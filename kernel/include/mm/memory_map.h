@@ -10,14 +10,13 @@ extern void *_KERNEL_VMA;
 #define KERNEL_VMA ((void*)&_KERNEL_VMA)
 
 // end of kernel memory in virtual address space (-2 GiB)
-extern void *_KERNEL_END;
+extern uint64_t KERNEL_END;
 
 /* this symbol stores virtual address of end of kernel tweaked
  * to contain boot time allocations
  * it is used by frame allocator, so it must be defined
  * and initialized before allocator initialization
  */
-extern void *KERNEL_END;
 
 // offset where kernel physical memory is mapped
 #define KERNEL_PHYS ((void*)0xFFFF800000000000)

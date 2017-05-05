@@ -280,6 +280,9 @@ _start:
     cmp eax, edx
     jne .cleaning
 
+    ; store final kernel end
+    mov Kernel_end, edx
+
 
     ; enable PAE
     mov eax, cr4
@@ -351,6 +354,10 @@ section .text
 _starthigh64:
     mov rsp, stack_top
     mov rbp, rsp
+
+    ; set kernel end
+    extern KERNEL_END
+    mov QWORD [KERNEL_END], rsi
 
     ; set final GDT
     call reload_gdt

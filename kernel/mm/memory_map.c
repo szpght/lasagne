@@ -1,7 +1,7 @@
 #include <mm/memory_map.h>
 #include <assert.h>
 
-void *KERNEL_END = &_KERNEL_END;
+uint64_t KERNEL_END;
 
 
 struct memory_map mem_map;

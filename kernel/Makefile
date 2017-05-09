@@ -17,7 +17,7 @@ OBJS             =              \
 	libc/string.o               \
 	mm/frame.o                  \
 	mm/memory_map.o             \
-#	mm/pages.o                  \
+	mm/pages.o                  \
 #	mm/alloc.o                  \
 #	mm/buddy.o                  \
 #	core/task.o                 \

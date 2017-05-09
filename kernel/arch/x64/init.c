@@ -15,8 +15,7 @@ void initialize(void *multiboot_information)
     initialize_irq();
     parse_multiboot(multiboot_information);
     initialize_frame_allocation();
-    /*initialize_memory();
-    initialize_tasks();
+    /*initialize_tasks();
     pit_initialize();
     printk("SYSTEM BOOT COMPLETE\n");
 

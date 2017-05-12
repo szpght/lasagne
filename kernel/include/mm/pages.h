@@ -40,8 +40,13 @@
 
 #define PHYS_ADDR_MASK 0xFFFFFFFFFF000
 
+struct pt_entries {
+    uintptr_t *entries[4];
+    int present_mask;
+};
+
 uintptr_t *pte(uintptr_t address, int level);
 
 void reload_paging();
 void map_page(uintptr_t virtual, uintptr_t physical, uint64_t flags);
-void unmap_page(uintptr_t virtual, uint64_t flags);
+uintptr_t unmap_page(uintptr_t virtual, uint64_t flags);

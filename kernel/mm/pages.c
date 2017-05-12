@@ -13,67 +13,63 @@ static void invlpg(uintptr_t address)
     __asm__ volatile ("invlpg (%0)" : : "b"(address) : "memory");
 }
 
-uintptr_t *pte(uintptr_t address, int level)
+struct pt_entries ptes(uintptr_t address)
 {
-    assert(level >= 0 && level <= 4);
+    struct pt_entries e;
+    e.present_mask = 0;
 
-    for (int i = 0; i < level; ++i) {
+    for (int i = 0; i < 4; ++i) {
         address >>= 9;
-        address &= ~L4PTE_MASK;
-        address |= PG_SELF << 39;
-    }
-    address = (address & ~7UL) | 0xFFFF000000000000;
-    return (uintptr_t*) address;
-}
-
-void pt_gc_acquire(uintptr_t address, int level)
-{
-    if (level > 3) {
-        return;
-    }
-    // increase counter only if entry empty
-    if (*pte(address, level) & PG_PRESENT) {
-        return;
+        address &= ~(L4PTE_MASK | 7UL);
+        address |= 0xFFFF000000000000 | (PG_SELF << 39);
+        e.entries[3 - i] = address;
     }
 
-    uintptr_t *entry = pte(address, level + 1);
-    // TODO use 9 bits
-    *entry += 1L << PG_REFCOUNT_OFFSET;
-}
-
-void pt_gc_release(uintptr_t address, int level)
-{
-    if (level > 3) {
-        return;
-    }
-    uintptr_t *entry = pte(address, level + 1);
-    *entry -= 1L << PG_REFCOUNT_OFFSET;
-    if ((*entry & PG_REFCOUNT_MASK) == 0) {
-        free_frame(*entry & PHYS_ADDR_MASK);
-        *entry = 0;
-        pt_gc_release(address, level + 1);
-    }
-}
-
-void create_pts(uintptr_t address, int level)
-{
-    while (level > 1) {
-        uintptr_t *entry = pte(address, level);
-        pt_gc_acquire(address, level);
-        *entry = get_frame() | PG_PRESENT | PG_RW;
-        --level;
-        // TODO zeroing tables
-    }
-}
-
-void ensure_pt_exists(uintptr_t address)
-{
-    for (int level = 4; level > 1; --level) {
-        uintptr_t *entry = pte(address, level);
-        if (!(*entry & PG_PRESENT)) {
-            create_pts(address, level);
-            return;
+    for (int i = 0; i < 4; ++i) {
+        if (e.entries[i][0] & PG_PRESENT) {
+            e.present_mask |= 1 << i;
         }
+        else {
+            return e;
+        }
+    }
+    return e;
+}
+
+static void increase_counter(uintptr_t *pte)
+{
+    *pte += 1L << PG_REFCOUNT_OFFSET;
+}
+
+static int decrease_counter(uintptr_t *pte)
+{
+    *pte -= 1L << PG_REFCOUNT_OFFSET;
+    return (*pte & PG_REFCOUNT_MASK) >> PG_REFCOUNT_OFFSET;
+}
+
+void ensure_pt_exists(struct pt_entries *entries)
+{
+    for (int i = 0; i < 3; ++i) {
+        if (entries->present_mask & 1 << i) {
+            continue;
+        }
+
+        *entries->entries[i] = get_frame() | PG_PRESENT | PG_RW;
+        if (i > 0 && i < 3) {
+            increase_counter(entries->entries[i - 1]);
+        }
+    }
+}
+
+void clean_pts(struct pt_entries *entries)
+{
+    for (int i = 2; i >= 0; --i) {
+        int count = decrease_counter(entries->entries[i]);
+        if (count) {
+            break;
+        }
+        free_frame(*entries->entries[i] & PHYS_ADDR_MASK);
+        *entries->entries[i] = 0;
     }
 }
 
@@ -81,17 +77,23 @@ void map_page(uintptr_t virtual, uintptr_t physical, uint64_t flags)
 {
     assert(virtual % 4096 == 0);
     assert(physical % 4096 == 0);
-    ensure_pt_exists(virtual);
-    uintptr_t *entry = pte(virtual, 1);
-    pt_gc_acquire(virtual, 1);
-    *entry = physical | flags;
+    struct pt_entries e = ptes(virtual);
+    if (!(e.present_mask & 1 << 2)) {
+        ensure_pt_exists(&e);
+    }
+    if (!(e.present_mask & 1 << 3)) {
+        increase_counter(e.entries[2]);
+    }
+    *e.entries[3] = physical | flags;
     invlpg(virtual);
 }
 
-void unmap_page(uintptr_t virtual, uint64_t flags)
+uintptr_t unmap_page(uintptr_t virtual, uint64_t flags)
 {
-    uintptr_t *entry = pte(virtual, 1);
-    *entry = flags;
-    pt_gc_release(virtual, 1);
-    invlpg(virtual);
+    assert(virtual % 4096 == 0);
+    struct pt_entries e = ptes(virtual);
+    uintptr_t physical = *e.entries[3] & PHYS_ADDR_MASK;
+    e.entries[3] = 0;
+    clean_pts(&e);
+    return physical;
 }

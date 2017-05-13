@@ -1,6 +1,21 @@
 #include <mm/pages.h>
 #include <mm/frame.h>
 #include <assert.h>
+#include <string.h>
+
+static uintptr_t zero_page;
+
+void initialize_virtual_memory()
+{
+    zero_page = get_frame();
+    uint64_t *zero_page_v = 0xFFFFFFFF80001000;
+    // TODO more structured approach to virtual memory
+    uintptr_t old_addr = unmap_page(zero_page_v, 0);
+    map_page(zero_page_v, zero_page, PG_PRESENT | PG_RW);
+    memset(zero_page_v, 0, 4096);
+    map_page(zero_page_v, old_addr, PG_PRESENT | PG_RW);
+    set_irq_handler(14, page_fault_handler, INT_HANDLER_ERRORCODE);
+}
 
 void reload_paging()
 {
@@ -55,7 +70,12 @@ void ensure_pt_exists(struct pt_entries *entries)
         }
 
         *entries->entries[i] = get_frame() | PG_PRESENT | PG_RW;
-        if (i > 0 && i < 3) {
+        // TODO get zeroed page from frame allocator
+        // zeroing newly created pt
+        uintptr_t *new_pt = *entries->entries[i + 1] & ~0xFFFL;
+        invlpg(new_pt);
+        memset(new_pt, 0, 4096);
+        if (i > 0) {
             increase_counter(entries->entries[i - 1]);
         }
     }
@@ -96,4 +116,46 @@ uintptr_t unmap_page(uintptr_t virtual, uint64_t flags)
     e.entries[3] = 0;
     clean_pts(&e);
     return physical;
+}
+
+void map_range(uintptr_t start, size_t size, uint64_t flags)
+{
+    assert(!!(flags & MAP_LAZY) ^ !!(flags & MAP_IMMEDIATE));
+    uintptr_t physical = zero_page;
+    uint64_t map_flags = PG_PRESENT;
+    map_flags |= flags & PG_USER;
+
+    if (flags & MAP_LAZY) {
+        map_flags |= MAP_LAZY;
+    }
+    else {
+        map_flags |= flags & PG_RW;
+    }
+    for (size_t i = 0; i < size; i += 4096) {
+        if (flags & MAP_IMMEDIATE) {
+            printk("getting physical\n");
+            physical = get_frame();
+        }
+        map_page(start + i, physical, map_flags);
+    }
+}
+
+void page_fault_handler(struct irq_state *regs, uint64_t error_code)
+{
+    uintptr_t addr = get_cr2();
+    struct pt_entries e = ptes(addr);
+    printk("page fault %lx\n", addr);
+
+    // check if fault because of write to lazy page
+    if ((error_code & PF_PROT_VIOLATION)
+        && (error_code & PF_WRITE)
+        && *e.entries[3] & MAP_LAZY) {
+
+        uintptr_t flags = *e.entries[3] & ~PHYS_ADDR_MASK;
+        flags |= PG_RW;
+        *e.entries[3] = get_frame() | flags;
+        invlpg(addr);
+        return;
+    }
+    generic_exception_handler(regs, error_code);
 }

@@ -2,6 +2,7 @@
 #include <mm/frame.h>
 #include <assert.h>
 #include <string.h>
+#include <stdbool.h>
 
 static uintptr_t zero_page;
 
@@ -140,18 +141,48 @@ void map_range(uintptr_t start, size_t size, uint64_t flags)
     }
 }
 
+void unmap_range(uintptr_t start, size_t size)
+{
+    for (size_t i = 0; i < size; i += 4096) {
+        struct pt_entries e = ptes(start + i);
+        if (e.present_mask == 0xF) {
+            bool frame_allocated = true;
+            if (*e.entries[3] & MAP_LAZY) {
+                frame_allocated = false;
+            }
+            uintptr_t physical = unmap_page(start + i, 0);
+            if (frame_allocated) {
+                free_frame(physical);
+            }
+        }
+    }
+}
+
+void zero_range(uintptr_t start, size_t size)
+{
+    for (size_t i = 0; i < size; i += 4096) {
+        struct pt_entries e = ptes(start + i);
+        assert(e.present_mask == 0xF);
+        if (e.present_mask == 0xF && !(*e.entries[3] & MAP_LAZY)) {
+            uintptr_t physical = *e.entries[3] & PHYS_ADDR_MASK;
+            free_frame(physical);
+            *e.entries[3] &= ~PHYS_ADDR_MASK;
+            *e.entries[3] |= zero_page | MAP_LAZY;
+        }
+    }
+}
+
 void page_fault_handler(struct irq_state *regs, uint64_t error_code)
 {
     uintptr_t addr = get_cr2();
     struct pt_entries e = ptes(addr);
-    printk("page fault %lx\n", addr);
 
     // check if fault because of write to lazy page
     if ((error_code & PF_PROT_VIOLATION)
         && (error_code & PF_WRITE)
         && *e.entries[3] & MAP_LAZY) {
 
-        uintptr_t flags = *e.entries[3] & ~PHYS_ADDR_MASK;
+        uintptr_t flags = *e.entries[3] & ~(PHYS_ADDR_MASK | MAP_LAZY);
         flags |= PG_RW;
         *e.entries[3] = get_frame() | flags;
         invlpg(addr);

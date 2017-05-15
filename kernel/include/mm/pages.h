@@ -67,4 +67,6 @@ void reload_paging();
 void map_page(uintptr_t virtual, uintptr_t physical, uint64_t flags);
 uintptr_t unmap_page(uintptr_t virtual, uint64_t flags);
 void map_range(uintptr_t start, size_t size, uint64_t flags);
+void unmap_range(uintptr_t start, size_t size);
+void zero_range(uintptr_t start, size_t size);
 void page_fault_handler(struct irq_state *regs, uint64_t error_code);

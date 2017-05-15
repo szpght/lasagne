@@ -63,7 +63,7 @@ static int decrease_counter(uintptr_t *pte)
     return (*pte & PG_REFCOUNT_MASK) >> PG_REFCOUNT_OFFSET;
 }
 
-void ensure_pt_exists(struct pt_entries *entries)
+static void ensure_pt_exists(struct pt_entries *entries)
 {
     for (int i = 0; i < 3; ++i) {
         if (entries->present_mask & 1 << i) {
@@ -82,7 +82,7 @@ void ensure_pt_exists(struct pt_entries *entries)
     }
 }
 
-void clean_pts(struct pt_entries *entries)
+static void clean_pts(struct pt_entries *entries)
 {
     for (int i = 2; i >= 0; --i) {
         int count = decrease_counter(entries->entries[i]);

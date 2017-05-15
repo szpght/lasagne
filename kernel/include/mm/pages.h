@@ -61,8 +61,8 @@ struct pt_entries {
     int present_mask;
 };
 
-uintptr_t *pte(uintptr_t address, int level);
-
+void initialize_virtual_memory();
+struct pt_entries ptes(uintptr_t address);
 void reload_paging();
 void map_page(uintptr_t virtual, uintptr_t physical, uint64_t flags);
 uintptr_t unmap_page(uintptr_t virtual, uint64_t flags);

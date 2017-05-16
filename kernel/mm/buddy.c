@@ -3,6 +3,7 @@
 #include <printk.h>
 
 #define log2(number) __builtin_ctzl(number)
+static long round_power_of_2(long number);
 static void flip_bit(uint8_t *buffer, int bit);
 static uint8_t get_bit(uint8_t *buffer, int bit);
 static void set_bit(uint8_t *buffer, int bit);
@@ -101,8 +102,9 @@ void allocator_init_free_auto(struct allocator *alloc)
 
 void *allocator_allocate(struct allocator *alloc, size_t size)
 {
+    size = round_power_of_2(size);
     // sanity checks
-    if (!is_power_of_2(size) || size > alloc->free_size) {
+    if (size > alloc->free_size) {
         return ALLOCATOR_EMPTY;
     }
     int level = level_from_size(alloc, size);
@@ -226,6 +228,7 @@ static void remove_from_list(struct allocator *alloc, struct allocator_node *blo
 
 void allocator_deallocate_fast(struct allocator *alloc, void *block, size_t size)
 {
+    size = round_power_of_2(size);
     int level = level_from_size(alloc, size);
     allocator_deallocate_level(alloc, block, level);
 }
@@ -359,4 +362,14 @@ static void reset_bit(uint8_t *buffer, int bit)
 static bool is_power_of_2(size_t x)
 {
     return (x != 0) && !(x & (x - 1));
+}
+
+static long round_power_of_2(long number)
+{
+    int a = __builtin_ctzl(number);
+    int b = 63 - __builtin_clzl(number);
+    if (a != b) {
+        b += 1;
+    }
+    return 1 << b;
 }

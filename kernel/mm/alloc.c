@@ -18,11 +18,7 @@ void initialize_kernel_heap()
 
 void *kalloc(size_t size)
 {
-    size_t alloc_size = KERNEL_HEAP_LEAF;
-    while (alloc_size < size) {
-        alloc_size <<= 1;
-    }
-    return allocator_allocate(&heap_allocator, alloc_size);
+    return allocator_allocate(&heap_allocator, size);
 }
 
 void kfree(void *ptr)

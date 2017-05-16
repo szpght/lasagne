@@ -19,7 +19,7 @@ void initialize(void *multiboot_information)
     initialize_virtual_memory();
     initialize_kernel_heap();
 
-    /*initialize_tasks();
+    initialize_tasks();
     pit_initialize();
     printk("SYSTEM BOOT COMPLETE\n");
 
@@ -29,5 +29,5 @@ void initialize(void *multiboot_information)
             __asm__ volatile ("nop");
         }
         printk("A %d\n", ++counter);
-    }*/
+    }
 }

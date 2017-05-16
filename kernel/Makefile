@@ -20,7 +20,7 @@ OBJS             =              \
 	mm/pages.o                  \
 	mm/alloc.o                  \
 	mm/buddy.o                  \
-#	core/task.o                 \
+	core/task.o                 \
 
 
 KERNEL    = kernel.a

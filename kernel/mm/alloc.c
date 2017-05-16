@@ -15,3 +15,24 @@ void initialize_kernel_heap()
                    KERNEL_HEAP_LEAF, kernel_heap);
     allocator_print_status(&heap_allocator);
 }
+
+void *kalloc(size_t size)
+{
+    size_t alloc_size = KERNEL_HEAP_LEAF;
+    while (alloc_size < size) {
+        alloc_size <<= 1;
+    }
+    return allocator_allocate(&heap_allocator, alloc_size);
+}
+
+void kfree(void *ptr)
+{
+    allocator_deallocate(&heap_allocator, ptr);
+}
+
+void *kzalloc(size_t size)
+{
+    void *ptr = kalloc(size);
+    memset(ptr, 0, size);
+    return ptr;
+}

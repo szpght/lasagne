@@ -284,18 +284,12 @@ static bool empty(struct allocator_node *block)
 
 static int level_from_size(struct allocator *alloc, size_t size)
 {
-    int level = 0;
-    while (size < alloc->size)
-    {
-        level += 1;
-        size *= 2;
-    }
-    return level;
+    return log2(alloc->size) - log2(size);
 }
 
 static size_t size_from_level(struct allocator *alloc, int level)
 {
-    return alloc->size / (1 << level);
+    return alloc->size >> level;
 }
 
 ///////// utils

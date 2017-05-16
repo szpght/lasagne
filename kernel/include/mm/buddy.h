@@ -33,5 +33,3 @@ void allocator_deallocate_level(struct allocator *alloc, void *block, int level)
 void allocator_deallocate_fast(struct allocator *allocator, void *address, size_t size);
 void allocator_deallocate(struct allocator *allocator, void *block);
 size_t allocator_bitmaps_size(size_t memory_size, size_t leaf_size);
-int allocator_init_free(struct allocator *alloc, void *begin, void *end);
-void allocator_init_free_auto(struct allocator *alloc);

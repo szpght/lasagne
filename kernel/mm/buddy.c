@@ -8,7 +8,6 @@ static void flip_bit(uint8_t *buffer, int bit);
 static uint8_t get_bit(uint8_t *buffer, int bit);
 static void set_bit(uint8_t *buffer, int bit);
 static void reset_bit(uint8_t *buffer, int bit);
-static bool is_power_of_2(size_t x);
 static int level_from_size(struct allocator *alloc, size_t size);
 static size_t size_from_level(struct allocator *alloc, int level);
 static struct allocator_node *create_block(struct allocator *alloc, int level);
@@ -68,36 +67,6 @@ void allocator_init(struct allocator *alloc, void *memory, size_t size,
 size_t allocator_bitmaps_size(size_t memory_size, size_t leaf_size)
 {
     return memory_size / leaf_size * 2;
-}
-
-int allocator_init_free(struct allocator *alloc, void *begin, void *end)
-{
-    // sanity checks
-    size_t offset = begin - alloc->memory;
-    if (begin < alloc->memory
-        || offset % alloc->leaf_size) {
-            return 1;
-    }
-    if (end > alloc->memory + alloc->size) {
-        end = alloc->memory + alloc->size;
-    }
-
-    void *bitmap_begin = alloc->allocation_bitmap;
-    void *bitmap_end = alloc->split_bitmap + (alloc->split_bitmap - alloc->allocation_bitmap);
-    while (begin < end) {
-        if (begin >= bitmap_begin && begin < bitmap_end) {
-            begin = bitmap_end;
-            continue;
-        }
-        allocator_deallocate_level(alloc, begin, alloc->max_level);
-        begin += alloc->leaf_size;
-    }
-    return 0;
-}
-
-void allocator_init_free_auto(struct allocator *alloc)
-{
-    allocator_init_free(alloc, alloc->memory, alloc->memory + alloc->size);
 }
 
 void *allocator_allocate(struct allocator *alloc, size_t size)
@@ -357,11 +326,6 @@ static void reset_bit(uint8_t *buffer, int bit)
     int index = bit / 8;
     int offset = bit % 8;
     buffer[index] &= ~(1 << offset);
-}
-
-static bool is_power_of_2(size_t x)
-{
-    return (x != 0) && !(x & (x - 1));
 }
 
 static long round_power_of_2(long number)

@@ -9,12 +9,12 @@ static uintptr_t zero_page;
 void initialize_virtual_memory()
 {
     zero_page = get_frame();
-    uint64_t *zero_page_v = 0xFFFFFFFF80001000;
+    uint64_t *zero_page_v = (void*) 0xFFFFFFFF80001000;
     // TODO more structured approach to virtual memory
-    uintptr_t old_addr = unmap_page(zero_page_v, 0);
-    map_page(zero_page_v, zero_page, PG_PRESENT | PG_RW);
+    uintptr_t old_addr = unmap_page((uintptr_t) zero_page_v, 0);
+    map_page((uintptr_t) zero_page_v, zero_page, PG_PRESENT | PG_RW);
     memset(zero_page_v, 0, 4096);
-    map_page(zero_page_v, old_addr, PG_PRESENT | PG_RW);
+    map_page((uintptr_t) zero_page_v, old_addr, PG_PRESENT | PG_RW);
     set_irq_handler(14, page_fault_handler, INT_HANDLER_ERRORCODE);
 }
 
@@ -38,7 +38,7 @@ struct pt_entries ptes(uintptr_t address)
         address >>= 9;
         address &= ~(L4PTE_MASK | 7UL);
         address |= 0xFFFF000000000000 | (PG_SELF << 39);
-        e.entries[3 - i] = address;
+        e.entries[3 - i] = (uintptr_t*)address;
     }
 
     for (int i = 0; i < 4; ++i) {
@@ -73,8 +73,8 @@ static void ensure_pt_exists(struct pt_entries *entries)
         *entries->entries[i] = get_frame() | PG_PRESENT | PG_RW;
         // TODO get zeroed page from frame allocator
         // zeroing newly created pt
-        uintptr_t *new_pt = *entries->entries[i + 1] & ~0xFFFL;
-        invlpg(new_pt);
+        uintptr_t *new_pt = (uintptr_t *) (*entries->entries[i + 1] & ~0xFFFL);
+        invlpg((uintptr_t) new_pt);
         memset(new_pt, 0, 4096);
         if (i > 0) {
             increase_counter(entries->entries[i - 1]);
@@ -111,6 +111,7 @@ void map_page(uintptr_t virtual, uintptr_t physical, uint64_t flags)
 
 uintptr_t unmap_page(uintptr_t virtual, uint64_t flags)
 {
+    (void)flags;
     assert(virtual % 4096 == 0);
     struct pt_entries e = ptes(virtual);
     uintptr_t physical = *e.entries[3] & PHYS_ADDR_MASK;

@@ -134,7 +134,6 @@ void map_range(uintptr_t start, size_t size, uint64_t flags)
     }
     for (size_t i = 0; i < size; i += 4096) {
         if (flags & MAP_IMMEDIATE) {
-            printk("getting physical\n");
             physical = get_frame();
         }
         map_page(start + i, physical, map_flags);

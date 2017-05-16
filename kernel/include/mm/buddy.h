@@ -4,7 +4,7 @@
 
 // 40 levels + 12 bits of page size gives 52 bits - physical address limit
 #define ALLOCATOR_MAX_LEVELS 40
-#define ALLOCATOR_EMPTY ((void *)-1)
+#define ALLOCATOR_EMPTY ((void *)0LL)
 
 struct allocator_node {
     struct allocator_node *prev;

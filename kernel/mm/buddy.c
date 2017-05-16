@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <printk.h>
 
-static int log2(long number);
+#define log2(number) __builtin_ctzl(number)
 static void flip_bit(uint8_t *buffer, int bit);
 static uint8_t get_bit(uint8_t *buffer, int bit);
 static void set_bit(uint8_t *buffer, int bit);
@@ -41,7 +41,7 @@ void allocator_init(struct allocator *alloc, void *memory, size_t size,
 {
     alloc->memory = memory;
     alloc->size = size;
-    alloc->free_size = 0;
+    alloc->free_size = size;
     alloc->leaf_size = leaf_size;
     alloc->max_level = log2(size / leaf_size);
     alloc->bitmap_entries = (1 << alloc->max_level) - 1;
@@ -58,8 +58,10 @@ void allocator_init(struct allocator *alloc, void *memory, size_t size,
     }
     for (int i = 0; i < bitmap_size; ++i) {
         alloc->allocation_bitmap[i] = 0;
-        alloc->split_bitmap[i] = 0xFF;
+        alloc->split_bitmap[i] = 0;
     }
+    alloc->free_count[0] = 1;
+    alloc->free_blocks[0] = memory;
 }
 
 size_t allocator_bitmaps_size(size_t memory_size, size_t leaf_size)
@@ -352,16 +354,6 @@ static void reset_bit(uint8_t *buffer, int bit)
     int index = bit / 8;
     int offset = bit % 8;
     buffer[index] &= ~(1 << offset);
-}
-
-static int log2(long number)
-{
-    int result = -1;
-    while (number) {
-        result += 1;
-        number /= 2;
-    }
-    return result;
 }
 
 static bool is_power_of_2(size_t x)

@@ -4,6 +4,7 @@
 #include <mm/memory_map.h>
 #include <multiboot.h>
 #include <mm/pages.h>
+#include <mm/alloc.h>
 #include <irq.h>
 #include <task.h>
 #include <io/pit.h>
@@ -16,6 +17,7 @@ void initialize(void *multiboot_information)
     parse_multiboot(multiboot_information);
     initialize_frame_allocation();
     initialize_virtual_memory();
+    initialize_kernel_heap();
 
     /*initialize_tasks();
     pit_initialize();

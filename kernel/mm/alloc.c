@@ -1,26 +1,17 @@
 #include <mm/alloc.h>
-#include <mm/frame.h>
-#include <mm/memory_map.h>
+#include <mm/buddy.h>
+#include <mm/pages.h>
 #include <string.h>
 
-void *kalloc(size_t size)
-{
-    size_t alloc_size = PAGE_SIZE;
-    while (alloc_size < size) {
-        alloc_size <<= 1;
-    }
-    void *ptr = allocator_allocate(&frame_alloc, alloc_size);
-    return ptr;
-}
+static struct allocator heap_allocator;
+const void *kernel_heap = 0xffffffff81000000;
 
-void kfree(void *ptr)
+void initialize_kernel_heap()
 {
-    allocator_deallocate(&frame_alloc, ptr);
-}
-
-void *kzalloc(size_t size)
-{
-	void *ptr = kalloc(size);
-	memset(ptr, 0, size);
-	return ptr;
+    size_t bitmap_size = allocator_bitmaps_size(KERNEL_HEAP_SIZE, KERNEL_HEAP_LEAF);
+    map_range(kernel_heap, bitmap_size, MAP_RW | MAP_IMMEDIATE);
+    map_range(kernel_heap + bitmap_size, KERNEL_HEAP_SIZE, MAP_RW | MAP_LAZY);
+    allocator_init(&heap_allocator, kernel_heap + bitmap_size, KERNEL_HEAP_SIZE,
+                   KERNEL_HEAP_LEAF, kernel_heap);
+    allocator_print_status(&heap_allocator);
 }

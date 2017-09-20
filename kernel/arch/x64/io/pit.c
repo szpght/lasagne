@@ -4,7 +4,7 @@
 #include <printk.h>
 #include <task.h>
 
-inline void set_counter()
+static void set_counter()
 {
     outb(PIT_CH0, 0xFF);
     outb(PIT_CH0, 0xFF);
@@ -21,7 +21,7 @@ void pit_initialize()
     pic_flip_irq(0);
 }
 
-void pit_handler()
+__attribute__((optimize("-fomit-frame-pointer"))) void pit_handler()
 {
     irq_eoi();
     preempt_int();

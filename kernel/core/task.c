@@ -101,7 +101,7 @@ void set_current_kernel_stack(void *stack)
     tss.rsp0 = stack;
 }
 
-void preempt_int()
+__attribute__((optimize("-fomit-frame-pointer"))) void preempt_int()
 {
     struct thread *old_thread = current_thread;
     current_thread = current_thread->next;

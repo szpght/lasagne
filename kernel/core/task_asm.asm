@@ -45,12 +45,16 @@ switch_task_sys:
 
 
 global switch_task_int
-global switch_task_int_return
 switch_task_int:
+    ; save rbp in case when next function on the call stack
+    ; would restore rsp from rbp
+    push rbp
+
     ; save rsp
     mov QWORD [rdi], rsp
 
     ; restore rsp of new task
     mov rsp, QWORD rsi
-    
+
+    pop rbp
     ret

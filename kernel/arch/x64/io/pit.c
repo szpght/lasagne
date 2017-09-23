@@ -21,7 +21,7 @@ void pit_initialize()
     pic_flip_irq(0);
 }
 
-__attribute__((optimize("-fomit-frame-pointer"))) void pit_handler()
+void pit_handler()
 {
     irq_eoi();
     preempt_int();

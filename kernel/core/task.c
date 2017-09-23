@@ -52,9 +52,10 @@ struct thread *create_thread(struct task *task, void *main)
 {
     struct thread *thread = kalloc(sizeof *thread);
 
-    thread->rsp = (kalloc(DEFAULT_STACK_SIZE) + DEFAULT_STACK_SIZE);
+    void* stack = kalloc(DEFAULT_STACK_SIZE);
+    thread->rsp = (stack + DEFAULT_STACK_SIZE);
     *(--thread->rsp) = 0x10; // ss
-    uint64_t *place_for_rsp = --thread->rsp; // rsp
+    *(--thread->rsp) = (uint64_t) stack; // rsp
     *(--thread->rsp) = RFLAGS_IF; // rflags
     *(--thread->rsp) = 0x8; // cs
     *(--thread->rsp) = (uint64_t) main;
@@ -63,7 +64,7 @@ struct thread *create_thread(struct task *task, void *main)
         *(--thread->rsp) = 0;
     }
     *(--thread->rsp) = (uint64_t) leave_interrupt_handler;
-    *place_for_rsp = (uint64_t) thread->rsp;
+    *(--thread->rsp) = 0; // rbp
 
     thread->state = THREAD_RUNNING;
     thread->task = task;
@@ -101,7 +102,7 @@ void set_current_kernel_stack(void *stack)
     tss.rsp0 = stack;
 }
 
-__attribute__((optimize("-fomit-frame-pointer"))) void preempt_int()
+void preempt_int()
 {
     struct thread *old_thread = current_thread;
     current_thread = current_thread->next;

@@ -73,9 +73,9 @@ static void ensure_pt_exists(struct pt_entries *entries)
         *entries->entries[i] = get_frame() | PG_PRESENT | PG_RW;
         // TODO get zeroed page from frame allocator
         // zeroing newly created pt
-        uintptr_t *new_pt = (uintptr_t *) (*entries->entries[i + 1] & ~0xFFFL);
-        invlpg((uintptr_t) new_pt);
-        memset(new_pt, 0, 4096);
+        uintptr_t new_pt =  ((uint64_t) entries->entries[i + 1] & ~0xFFFL);
+        invlpg(new_pt);
+        memset((void *) new_pt, 0, 4096);
         if (i > 0) {
             increase_counter(entries->entries[i - 1]);
         }

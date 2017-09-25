@@ -43,27 +43,37 @@ resb 8192
 stack_top:
 
 
-section .bootstrap
+section .data_low
 align 4096
-; reserve space for initial paging structures
+
 global _pml4t
 _pml4t:
     times 4096 db 0
+global pdpt
 pdpt:
     times 4096 db 0
+global kernel_pd
+kernel_pd:
+    times 4096 db 0
+
+global __kernel_end_phys
+__kernel_end_phys:
+    dd 0
+
+section .boot
+align 4096
+; reserve space for initial paging structures
+global identity_pd
 identity_pd:
 %assign i (PAGE_PRESENT | PAGE_RW | PAGE_HUGE)
 %rep 512
     dq i
 %assign i (i + 2 * 1024 * 1024)
 %endrep
-kernel_pd:
-    times 4096 db 0
 
 temp_stack:
-    times 32 db 0
+    times 512 db 0
 temp_stack_end:
-
 
 ; temporary GDT
 GDT:
@@ -87,6 +97,7 @@ GDT:
     dw $ - GDT - 1
     .base_pointer:
     dq GDT
+
 
 global _start
 _start:
@@ -129,160 +140,8 @@ _start:
     mov eax, _pml4t
     mov cr3, eax
 
-
-
-    ; SETUP PAGING
-    extern _KERNEL_TEXT_PHYS
-    extern _KERNEL_EH_FRAME_PHYS
-    extern _KERNEL_RODATA_PHYS
-    extern _KERNEL_DATA_PHYS
-    extern _KERNEL_BSS_PHYS
-    extern _KERNEL_END_PHYS
-
-    %define Kernel_end esi
-    mov Kernel_end, _KERNEL_END_PHYS
-
-
-    ; setup level-4 table
-    ; point first and last entry to pdpt
-    mov eax, _pml4t
-    mov ebx, pdpt
-    or ebx, PAGE_PRESENT | PAGE_RW
-    mov DWORD [eax], ebx
-    mov DWORD [eax + 8 * 511], ebx
-    ; set refcount of pdpt to 1
-    mov ebx, 1 << (REFCOUNT_OFFSET - 32)
-    add DWORD [eax + 8 * 511 + 4], ebx
-
-    ; point entry 510 to self
-    mov ebx, eax
-    or ebx, PAGE_PRESENT | PAGE_RW
-    mov DWORD [eax + 8 * 510], ebx
-
-    ; setup pdpt
-    ; entry 0 points to identity pd
-    mov eax, pdpt
-    mov ebx, identity_pd
-    or ebx, PAGE_PRESENT | PAGE_RW
-    mov DWORD [eax], ebx
-    
-    ; entry 510 points to kernel pd
-    mov ebx, kernel_pd
-    or ebx, PAGE_PRESENT | PAGE_RW
-    mov DWORD [eax + 8 * 510], ebx
-
-    ; calculate number of page tables needed for kernel
-    %define Kernel_pts ebp
-
-    mov eax, _KERNEL_END_PHYS
-    cdq ; convert double to quad
-    mov ebx, 2 * 1024 * 1024
-    div ebx
-    ; add one page table if remainder present
-    test edx, edx
-    jz .round_number
-    inc eax
-
-    .round_number:
-    mov Kernel_pts, eax
-
-    ; set refcount of kernel pd in pdpt
-    mov ebx, Kernel_pts
-    shl ebx, REFCOUNT_OFFSET - 32
-    add DWORD [pdpt + 8 * 510 + 4], ebx
-
-    ; store count of bytes remaining in last pt in eax
-    mov eax, edx
-    ; calculate count of pt entries in last pt
-    shr eax, 12
-    ; calculate number to add in last pd
-    shl eax, REFCOUNT_OFFSET - 32
-
-    ; fill kernel pd
-    mov ecx, Kernel_pts
-    mov ebx, Kernel_end
-    or ebx, PAGE_PRESENT | PAGE_RW
-    mov edx, kernel_pd
-    .fill_kernel_pd:
-    mov DWORD [edx], ebx
-    add ebx, 4096
-    add edx, 8
-    loop .fill_kernel_pd
-
-    ; set refcount in last entry
-    add DWORD [edx - 4], eax
-
-    ; now the great moment of allocating and filling kernel page tables
-    ; at this moment we have following variables:
-    ; Kernel_end - pointing at the end of the kernel according to ld
-    ; Kernel_pts - number of needed page tables
-
-    ; registers that will be used
-    ; eax - current page table entry address
-    ; ecx - lower 32 bits of entry to be written
-    ; ebx - upper 32 bits of entry to be written
-    ; edx - beginning of next section
-
-    mov eax, Kernel_end
-
-    ; first 1 MiB of memory
-    mov ebx, MAGIC_NX
-    mov ecx, PAGE_PRESENT | PAGE_RW | PAGE_GLOBAL
-    mov edx, _KERNEL_TEXT_PHYS
-    call .map_pages
-
-    ; .text section
-    mov ecx, edx
-    xor ebx, ebx
-    or ecx, PAGE_PRESENT | PAGE_GLOBAL
-    mov edx, _KERNEL_EH_FRAME_PHYS
-    call .map_pages
-
-    ; .eh_frame section
-    mov ecx, edx
-    mov ebx, MAGIC_NX
-    or ecx, PAGE_PRESENT | PAGE_RW | PAGE_GLOBAL
-    mov edx, _KERNEL_RODATA_PHYS
-    call .map_pages
-
-    ; .rodata section
-    mov ecx, edx
-    mov ebx, MAGIC_NX
-    or ecx, PAGE_PRESENT | PAGE_GLOBAL
-    mov edx, _KERNEL_DATA_PHYS
-    call .map_pages
-
-    ; .data section
-    mov ecx, edx
-    mov ebx, MAGIC_NX
-    or ecx, PAGE_PRESENT | PAGE_RW | PAGE_GLOBAL
-    mov edx, _KERNEL_BSS_PHYS
-    call .map_pages
-
-    ; .bss section
-    mov ecx, edx
-    mov ebx, MAGIC_NX
-    or ecx, PAGE_PRESENT | PAGE_RW | PAGE_GLOBAL
-    mov edx, _KERNEL_END_PHYS
-    call .map_pages
-
-    ; clean the rest of the pt
-    mov ecx, 0
-    ; calculate end address of page tables
-    mov edx, Kernel_pts
-    shl edx, 12
-    add edx, Kernel_end
-    ; do the cleaning
-    .cleaning:
-    mov DWORD [eax], 0
-    mov DWORD [eax + 4], 0
-    add eax, 8
-    cmp eax, edx
-    jne .cleaning
-
-    ; store final kernel end
-    mov Kernel_end, edx
-
+    extern initialize_paging
+    call initialize_paging
 
     ; enable PAE
     mov eax, cr4
@@ -303,16 +162,8 @@ _start:
     lgdt [GDT.pointer]
     jmp GDT.code:_start64
 
-    ; FUNCTIONS SECTION
 
-    .map_pages:
-    mov DWORD [eax], ecx
-    mov DWORD [eax + 4], ebx
-    add eax, 8
-    add ecx, 4096
-    cmp edx, ecx
-    jge .map_pages
-    ret
+    ; FUNCTIONS SECTION
 
     .no_amd64:
     mov ecx, 80 * 25
@@ -356,8 +207,9 @@ _starthigh64:
     mov rbp, rsp
 
     ; set kernel end
+    mov eax, DWORD [__kernel_end_phys]
     extern KERNEL_END
-    mov QWORD [KERNEL_END], rsi
+    mov QWORD [KERNEL_END], rax
 
     ; set final GDT
     call reload_gdt

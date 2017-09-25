@@ -13,10 +13,15 @@ SECTIONS
 
     . = _KERNEL_LMA;
 
-    .bootstrap :
+    .boot ALIGN(4K) :
     {
-        *(.bootstrap)
-        *(.bootstrap_data)
+        *(.boot)
+        *(.boot.data)
+    }
+
+    .data_low ALIGN(4K) :
+    {
+        *(.data_low)
     }
 
     . += _KERNEL_VMA;

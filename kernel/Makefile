@@ -1,5 +1,5 @@
 export CC        = x86_64-elf-gcc
-export CFLAGS_BASE = -ffreestanding -mno-mmx -mno-sse -mno-sse2 \
+export CFLAGS_BASE = -ffreestanding -mno-mmx -mno-sse -mno-sse2 -fno-asynchronous-unwind-tables \
 	-Wall -Wextra -Werror=return-type -O0 -std=c11 -I${PWD}/include -I${PWD}/libc/include
 export CFLAGS    =  -mcmodel=kernel -mno-red-zone
 export AFLAGS    = -felf64

@@ -4,19 +4,14 @@ _KERNEL_VMA = 0xFFFFFFFF80000000;
 
 SECTIONS
 {
-    .  = 0;
-
-    .multiboot :
-    {
-        *(.multiboot)
-    }
-
     . = _KERNEL_LMA;
 
     .boot ALIGN(4K) :
     {
+        *(.multiboot)
         *(.boot)
         *(.boot.data)
+        *(.comment)
     }
 
     .data_low ALIGN(4K) :
@@ -31,13 +26,6 @@ SECTIONS
         _KERNEL_TEXT_PHYS = . - _KERNEL_VMA;
         _KERNEL_TEXT = .;
         *(.text)
-    }
-
-    .eh_frame ALIGN(4K) : AT(ADDR(.eh_frame) - _KERNEL_VMA)
-    {
-        _KERNEL_EH_FRAME_PHYS = . - _KERNEL_VMA;
-        _KERNEL_EH_FRAME_ = .;
-        *(.eh_frame)
     }
 
     .rodata ALIGN(4K) : AT(ADDR(.rodata) - _KERNEL_VMA)
@@ -65,11 +53,6 @@ SECTIONS
 
     _KERNEL_END = ALIGN(4K);
     _KERNEL_END_PHYS = ALIGN(4K) - _KERNEL_VMA;
-
-    .comment ALIGN(4K) : AT(ADDR(.comment) - _KERNEL_VMA)
-    {
-        *(.comment)
-    }
 
     .scratchpad ALIGN(4K) : AT(ADDR(.scratchpad) - _KERNEL_VMA)
     {

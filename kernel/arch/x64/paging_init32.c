@@ -8,7 +8,6 @@ extern uint64_t kernel_pd[];
 extern uint64_t identity_pd[];
 
 extern uint64_t _KERNEL_TEXT_PHYS[];
-extern uint64_t _KERNEL_EH_FRAME_PHYS[];
 extern uint64_t _KERNEL_RODATA_PHYS[];
 extern uint64_t _KERNEL_DATA_PHYS[];
 extern uint64_t _KERNEL_BSS_PHYS[];
@@ -67,14 +66,6 @@ __boot void initialize_paging()
 
     // text section
     flags = PG_PRESENT | PG_GLOBAL;
-    while (current_page < (uint32_t) _KERNEL_EH_FRAME_PHYS) {
-        *current_pte = current_page | flags;
-        current_pte += 1;
-        current_page += PG_SIZE;
-    }
-
-    // eh_frame section
-    flags = RW | PG_GLOBAL | PG_NX;
     while (current_page < (uint32_t) _KERNEL_RODATA_PHYS) {
         *current_pte = current_page | flags;
         current_pte += 1;

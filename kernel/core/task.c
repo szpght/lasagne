@@ -55,7 +55,7 @@ struct thread *create_thread(struct task *task, void *main)
     void* stack = kalloc(DEFAULT_STACK_SIZE);
     thread->rsp = (stack + DEFAULT_STACK_SIZE);
     *(--thread->rsp) = 0x10; // ss
-    *(--thread->rsp) = (uint64_t) stack; // rsp
+    *(--thread->rsp) = (uint64_t) stack + DEFAULT_STACK_SIZE; // rsp
     *(--thread->rsp) = RFLAGS_IF; // rflags
     *(--thread->rsp) = 0x8; // cs
     *(--thread->rsp) = (uint64_t) main;

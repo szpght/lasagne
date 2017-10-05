@@ -28,6 +28,13 @@ SECTIONS
         *(.text)
     }
 
+    .text.init ALIGN(4K) : AT(ADDR(.text.init) - _KERNEL_VMA)
+    {
+        _KERNEL_TEXT_INIT_PHYS = . - _KERNEL_VMA;
+        _KERNEL_TEXT_INIT = .;
+        *(.text.init)
+    }
+
     .rodata ALIGN(4K) : AT(ADDR(.rodata) - _KERNEL_VMA)
     {
         _KERNEL_RODATA_PHYS = . - _KERNEL_VMA;
@@ -41,6 +48,13 @@ SECTIONS
         _KERNEL_DATA_PHYS = . - _KERNEL_VMA;
         _KERNEL_DATA = .;
         *(.data)
+    }
+
+    .data.init ALIGN(4K) : AT(ADDR(.data.init) - _KERNEL_VMA)
+    {
+        _KERNEL_DATA_INIT_PHYS = . - _KERNEL_VMA;
+        _KERNEL_DATA_INIT = .;
+        *(.data.init)
     }
 
     .bss ALIGN(4K) : AT(ADDR(.bss) - _KERNEL_VMA)

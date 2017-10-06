@@ -94,7 +94,30 @@ static void clean_pts(struct pt_entries *entries)
     }
 }
 
-void map_page(uintptr_t virtual, uintptr_t physical, uint64_t flags)
+// convert kernel flags to physical amd64 flags
+// possible cases
+// MAP_RW & MAP_IMMEDIATE - set PG_RW
+// MAP_RW lazily mapped - set only PG_LAZY, PG_RW will be set by pf handler
+// !MAP_RW - only point to zero page, no additional flags needed
+static uintptr_t convert_flags(uintptr_t flags)
+{
+    uintptr_t output = flags & (MAP_USER | MAP_EXE);
+    output |= PG_PRESENT;
+    output ^= MAP_EXE;
+
+    if (flags & MAP_RW) {
+        if (flags & MAP_IMMEDIATE) {
+            output |= PG_RW;
+        }
+        else {
+            output |= PG_LAZY;
+        }
+    }
+
+    return output;
+}
+
+void map_page(uintptr_t virtual, uintptr_t physical, uint64_t physical_flags)
 {
     assert(virtual % 4096 == 0);
     assert(physical % 4096 == 0);
@@ -105,7 +128,7 @@ void map_page(uintptr_t virtual, uintptr_t physical, uint64_t flags)
     if (!(e.present_mask & 1 << 3)) {
         increase_counter(e.entries[2]);
     }
-    *e.entries[3] = physical | flags;
+    *e.entries[3] = physical | physical_flags;
     invlpg(virtual);
 }
 
@@ -122,17 +145,9 @@ uintptr_t unmap_page(uintptr_t virtual, uint64_t flags)
 
 void map_range(uintptr_t start, size_t size, uint64_t flags)
 {
-    assert(!!(flags & MAP_LAZY) ^ !!(flags & MAP_IMMEDIATE));
     uintptr_t physical = zero_page;
-    uint64_t map_flags = PG_PRESENT;
-    map_flags |= flags & PG_USER;
+    uint64_t map_flags = convert_flags(flags);
 
-    if (flags & MAP_LAZY) {
-        map_flags |= MAP_LAZY;
-    }
-    else {
-        map_flags |= flags & PG_RW;
-    }
     for (size_t i = 0; i < size; i += 4096) {
         if (flags & MAP_IMMEDIATE) {
             physical = get_frame();
@@ -147,27 +162,13 @@ void unmap_range(uintptr_t start, size_t size)
         struct pt_entries e = ptes(start + i);
         if (e.present_mask == 0xF) {
             bool frame_allocated = true;
-            if (*e.entries[3] & MAP_LAZY) {
+            if (*e.entries[3] & PG_LAZY) {
                 frame_allocated = false;
             }
             uintptr_t physical = unmap_page(start + i, 0);
             if (frame_allocated) {
                 free_frame(physical);
             }
-        }
-    }
-}
-
-void zero_range(uintptr_t start, size_t size)
-{
-    for (size_t i = 0; i < size; i += 4096) {
-        struct pt_entries e = ptes(start + i);
-        assert(e.present_mask == 0xF);
-        if (e.present_mask == 0xF && !(*e.entries[3] & MAP_LAZY)) {
-            uintptr_t physical = *e.entries[3] & PHYS_ADDR_MASK;
-            free_frame(physical);
-            *e.entries[3] &= ~PHYS_ADDR_MASK;
-            *e.entries[3] |= zero_page | MAP_LAZY;
         }
     }
 }
@@ -180,9 +181,9 @@ void page_fault_handler(struct irq_state *regs, uint64_t error_code)
     // check if fault because of write to lazy page
     if ((error_code & PF_PROT_VIOLATION)
         && (error_code & PF_WRITE)
-        && *e.entries[3] & MAP_LAZY) {
+        && *e.entries[3] & PG_LAZY) {
 
-        uintptr_t flags = *e.entries[3] & ~(PHYS_ADDR_MASK | MAP_LAZY);
+        uintptr_t flags = *e.entries[3] & ~(PHYS_ADDR_MASK | PG_LAZY);
         flags |= PG_RW;
         *e.entries[3] = get_frame() | flags;
         invlpg(addr);

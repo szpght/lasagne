@@ -30,6 +30,9 @@
 // bits ignored at all levels but lowest
 #define PG_BIT6 (1ULL << 6)
 
+// bits used by os
+#define PG_LAZY PG_BIT1
+
 // page fault error code flags
 #define PF_PROT_VIOLATION (1ULL << 0)
 #define PF_WRITE (1ULL << 1)
@@ -38,9 +41,9 @@
 #define PF_INSTRUCTION_FETCH (1ULL << 4)
 
 // kernel flags
-#define MAP_IMMEDIATE (1ULL << 12)
-#define MAP_LAZY PG_BIT1
 #define MAP_RW PG_RW
+#define MAP_EXE PG_NX
+#define MAP_IMMEDIATE (1ULL << 12)
 #define MAP_USER PG_USER
 
 // bits storing reference count
@@ -67,9 +70,8 @@ struct pt_entries {
 void initialize_virtual_memory();
 struct pt_entries ptes(uintptr_t address);
 void reload_paging();
-void map_page(uintptr_t virtual, uintptr_t physical, uint64_t flags);
+void map_page(uintptr_t virtual, uintptr_t physical, uint64_t physical_flags);
 uintptr_t unmap_page(uintptr_t virtual, uint64_t flags);
 void map_range(uintptr_t start, size_t size, uint64_t flags);
 void unmap_range(uintptr_t start, size_t size);
-void zero_range(uintptr_t start, size_t size);
 void page_fault_handler(struct irq_state *regs, uint64_t error_code);

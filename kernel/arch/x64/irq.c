@@ -9,10 +9,12 @@ struct idt_entry idt[INT_VECTORS_NUMBER];
 struct idt_handler idt_handler[INT_VECTORS_NUMBER];
 long spurious_interrupts_count;
 
-__init static void set_idt()
-{
-    load_idt(sizeof(struct idt_entry) * INT_VECTORS_NUMBER, idt);
-}
+static void initialize_pic();
+static void create_idt();
+static void set_idt();
+static void set_handlers();
+static void compile_idt(struct idt_entry *dest, struct idt_model *src);
+static void load_idt(uint16_t size, void *idt);
 
 __init void initialize_irq()
 {
@@ -23,7 +25,7 @@ __init void initialize_irq()
     enable_irq();
 }
 
-__init void initialize_pic()
+__init static void initialize_pic()
 {
     // read current masks, no idea if necessary
     inb(PIC1_DATA);
@@ -50,6 +52,63 @@ __init void initialize_pic()
     outb(PIC2_DATA, 0xFF);
 }
 
+__init static void create_idt()
+{
+    struct idt_model idt_model = {
+        .selector = 0x08,
+        .ist = 0,
+        .type = 0xE,
+        .dpl = 0,
+        .present = 0
+    };
+    for (int i = 0; i < INT_VECTORS_NUMBER; ++i) {
+        idt_model.offset = (uint64_t)interrupt_wrapper + INT_WRAPPER_ALIGN * i;
+        compile_idt(idt + i, &idt_model);
+    }
+}
+
+__init static void set_idt()
+{
+    load_idt(sizeof(struct idt_entry) * INT_VECTORS_NUMBER, idt);
+}
+
+__init static void set_handlers()
+{
+    for (int i = 0 ; i <= 7; ++i) {
+        set_irq_handler(i, generic_exception_handler, 0);
+    }
+    for (int i = 8 ; i <= 14; ++i) {
+        set_irq_handler(i, generic_exception_handler, INT_HANDLER_ERRORCODE);
+    }
+    for (int i = 16 ; i <= 79; ++i) {
+        set_irq_handler(i, generic_exception_handler, 0);
+    }
+
+   set_irq_handler(0x27, spurious_interrupt_handler, 0);
+}
+
+__init static void compile_idt(struct idt_entry *dest, struct idt_model *src)
+{
+    dest->offset_low = src->offset;
+    dest->offset_middle = src->offset >> 16;
+    dest->offset_high = src->offset >> 32;
+    dest->selector = src->selector;
+    dest->ist = src->ist;
+    dest->type = src->type;
+    dest->dpl = src->dpl;
+    dest->present = src->present;
+    dest->reserved = 0;
+}
+
+__init static void load_idt(uint16_t size, void *idt)
+{
+    struct idtr idtr = {
+        .limit = size - 1,
+        .offset = idt
+    };
+    _load_idt(&idtr);
+}
+
 void pic_flip_irq(int irq)
 {
     char port;
@@ -63,43 +122,6 @@ void pic_flip_irq(int irq)
     char mask = inb(port);
     mask ^= 1 << irq;
     outb(port, mask);
-}
-
-__init void compile_idt(struct idt_entry *dest, struct idt_model *src)
-{
-    dest->offset_low = src->offset;
-    dest->offset_middle = src->offset >> 16;
-    dest->offset_high = src->offset >> 32;
-    dest->selector = src->selector;
-    dest->ist = src->ist;
-    dest->type = src->type;
-    dest->dpl = src->dpl;
-    dest->present = src->present;
-    dest->reserved = 0;
-}
-
-void load_idt(uint16_t size, void *idt)
-{
-    struct idtr idtr = {
-        .limit = size - 1,
-        .offset = idt
-    };
-    _load_idt(&idtr);
-}
-
-__init void create_idt()
-{
-    struct idt_model idt_model = {
-        .selector = 0x08,
-        .ist = 0,
-        .type = 0xE,
-        .dpl = 0,
-        .present = 0
-    };
-    for (int i = 0; i < INT_VECTORS_NUMBER; ++i) {
-        idt_model.offset = (uint64_t)interrupt_wrapper + INT_WRAPPER_ALIGN * i;
-        compile_idt(idt + i, &idt_model);
-    }
 }
 
 void set_irq_handler(int irq_number, void *address, uint64_t flags)
@@ -178,21 +200,6 @@ void generic_exception_handler(struct irq_state *regs, uint64_t error_code)
     for(;;) {
         __asm__ volatile ("hlt");
     }
-}
-
-__init void set_handlers()
-{
-    for (int i = 0 ; i <= 7; ++i) {
-        set_irq_handler(i, generic_exception_handler, 0);
-    }
-    for (int i = 8 ; i <= 14; ++i) {
-        set_irq_handler(i, generic_exception_handler, INT_HANDLER_ERRORCODE);
-    }
-    for (int i = 16 ; i <= 79; ++i) {
-        set_irq_handler(i, generic_exception_handler, 0);
-    }
-
-   set_irq_handler(0x27, spurious_interrupt_handler, 0);
 }
 
 void irq_eoi()

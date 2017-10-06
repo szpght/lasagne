@@ -90,23 +90,16 @@ struct irq_stack_frame
     uint64_t ss;
 } __attribute__((packed));
 
-
+extern void enable_irq();
+extern void disable_irq();
+extern void _load_idt(struct idtr *idtr);
+extern uint64_t get_cr2();
 extern void interrupt_wrapper();
 
 void initialize_irq();
-void initialize_pic();
-void compile_idt(struct idt_entry *dest, struct idt_model *src);
-void load_idt(uint16_t size, void *idt);
-void create_idt();
-void create_handler_table();
-void enable_irq();
-void disable_irq();
-void _load_idt(struct idtr *idtr);
 void set_irq_handler(int irq_number, void *address, uint64_t flags);
 void reset_irq_handler(int irq_number);
 void generic_exception_handler(struct irq_state *registers, uint64_t error_code);
-void set_handlers();
-uint64_t get_cr2();
 void irq_eoi();
 void pic_flip_irq(int irq);
 void spurious_interrupt_handler();

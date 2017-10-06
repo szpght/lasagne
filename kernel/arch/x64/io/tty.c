@@ -99,7 +99,7 @@ void tty_putchar(uint32_t c)
     }
 }
 
-void tty_initialize()
+__init void tty_initialize()
 {
     tty_state.row = tty_state.col = 0;
     tty_state.buffer_row = 0;

@@ -35,5 +35,3 @@ struct mb_memmap_entry {
 
 
 void parse_multiboot(void *mb);
-void parse_memory_map(void *mb);
-void fill_memory_map(void *mb);

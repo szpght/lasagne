@@ -1,6 +1,7 @@
 #include <irq.h>
 #include <io/ports.h>
 #include <mm/alloc.h>
+#include <mm/memory_map.h>
 #include <printk.h>
 #include <task.h>
 
@@ -8,12 +9,12 @@ struct idt_entry idt[INT_VECTORS_NUMBER];
 struct idt_handler idt_handler[INT_VECTORS_NUMBER];
 long spurious_interrupts_count;
 
-static void set_idt()
+__init static void set_idt()
 {
     load_idt(sizeof(struct idt_entry) * INT_VECTORS_NUMBER, idt);
 }
 
-void initialize_irq()
+__init void initialize_irq()
 {
     initialize_pic();
     create_idt();
@@ -22,7 +23,7 @@ void initialize_irq()
     enable_irq();
 }
 
-void initialize_pic()
+__init void initialize_pic()
 {
     // read current masks, no idea if necessary
     inb(PIC1_DATA);
@@ -64,7 +65,7 @@ void pic_flip_irq(int irq)
     outb(port, mask);
 }
 
-void compile_idt(struct idt_entry *dest, struct idt_model *src)
+__init void compile_idt(struct idt_entry *dest, struct idt_model *src)
 {
     dest->offset_low = src->offset;
     dest->offset_middle = src->offset >> 16;
@@ -86,7 +87,7 @@ void load_idt(uint16_t size, void *idt)
     _load_idt(&idtr);
 }
 
-void create_idt()
+__init void create_idt()
 {
     struct idt_model idt_model = {
         .selector = 0x08,
@@ -179,7 +180,7 @@ void generic_exception_handler(struct irq_state *regs, uint64_t error_code)
     }
 }
 
-void set_handlers()
+__init void set_handlers()
 {
     for (int i = 0 ; i <= 7; ++i) {
         set_irq_handler(i, generic_exception_handler, 0);

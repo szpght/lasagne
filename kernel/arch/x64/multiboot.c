@@ -3,7 +3,10 @@
 #include <mm/memory_map.h>
 #include <printk.h>
 
-void parse_multiboot(void *mb)
+static void parse_memory_map(void *mb);
+static void fill_memory_map(void *mb);
+
+__init void parse_multiboot(void *mb)
 {
     uint32_t size = ((struct mb_header*) mb)->total_size;
 
@@ -28,13 +31,13 @@ void parse_multiboot(void *mb)
     }
 }
 
-void parse_memory_map(void *mb)
+__init static void parse_memory_map(void *mb)
 {
     fill_memory_map(mb);
     mem_map_sanitize();
 }
 
-void fill_memory_map(void *mb)
+__init static void fill_memory_map(void *mb)
 {
     struct mb_memmap *mm = mb;
 

@@ -9,7 +9,7 @@
 #include <task.h>
 #include <io/pit.h>
 
-void initialize(void *multiboot_information)
+__init void initialize(void *multiboot_information)
 {
     tty_initialize();
     tty_set_color(TTY_COLOR_LIGHT_GREEN, TTY_COLOR_BLACK);

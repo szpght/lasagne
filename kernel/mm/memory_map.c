@@ -6,7 +6,7 @@ uint64_t KERNEL_END;
 
 struct memory_map mem_map;
 
-void mem_map_add_area(uint64_t begin, uint64_t end)
+__init void mem_map_add_area(uint64_t begin, uint64_t end)
 {
     assert (begin < end);
     if (mem_map.count == MAP_MAX)
@@ -35,7 +35,7 @@ void mem_map_add_area(uint64_t begin, uint64_t end)
     mem_map.count += 1;
 }
 
-void mem_map_sanitize()
+__init void mem_map_sanitize()
 {
     // sort areas
     for (int i = 0; i < mem_map.count; ++i) {

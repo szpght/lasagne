@@ -24,7 +24,7 @@ void do_sth()
     }
 }
 
-void initialize_tasks()
+__init void initialize_tasks()
 {
     setup_tss();
     initialize_task(&kernel_task, "kernel", false, NULL);
@@ -77,7 +77,7 @@ void preempt_sys()
 {
 }
 
-void setup_tss()
+__init void setup_tss()
 {
     disable_irq();
     tss_descriptor.limit15_0 = sizeof tss;

@@ -1,3 +1,4 @@
+#include <mm/memory_map.h>
 #include <io/pit.h>
 #include <irq.h>
 #include <io/ports.h>
@@ -10,7 +11,7 @@ static void set_counter()
     outb(PIT_CH0, 0xFF);
 }
 
-void pit_initialize()
+__init void pit_initialize()
 {
     printk("hello pit world\n");
     set_irq_handler(0x20, pit_handler, 0);

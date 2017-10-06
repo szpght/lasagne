@@ -1,12 +1,13 @@
-#include <mm/pages.h>
 #include <mm/frame.h>
+#include <mm/memory_map.h>
+#include <mm/pages.h>
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>
 
 static uintptr_t zero_page;
 
-void initialize_virtual_memory()
+__init void initialize_virtual_memory()
 {
     zero_page = get_frame();
     uint64_t *zero_page_v = (void*) 0xFFFFFFFF80001000;

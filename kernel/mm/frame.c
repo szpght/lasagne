@@ -7,7 +7,7 @@
 
 struct allocator default_frame_allocator;
 
-void initialize_frame_allocation()
+__init void initialize_frame_allocation()
 {
     uint64_t end = mem_map.area[mem_map.count - 1].end;
     alloc_init(&default_frame_allocator, KERNEL_END, end,

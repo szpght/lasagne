@@ -8,10 +8,44 @@
 
 struct tss tss;
 
-
 struct task kernel_task;
+struct thread kernel_main_thread;
 struct task *tasks;
 struct thread *current_thread;
+
+__init static void setup_tss()
+{
+    disable_irq();
+    tss_descriptor.limit15_0 = sizeof tss;
+    tss_descriptor.base_addr23_0 = (uint64_t)(&tss) & 0xFFFFFF;
+    // tss must be available, it will automatically change to busy when loaded
+    tss_descriptor.type = TSS_AVAILABLE;
+    tss_descriptor.limit19_16 = 0;
+    tss_descriptor.avl = 1;
+    tss_descriptor.base31_24 = ((uint64_t)(&tss) >> 24) & 0xFF;
+    tss_descriptor.base63_32 = ((uint64_t)(&tss) >> 32) & 0xFFFFFFFF;
+    tss_descriptor.zero = 0;
+    tss_descriptor.present = 1;
+    load_tss();
+    enable_irq();
+}
+
+__init static void init_kernel_main_thread()
+{
+    kernel_main_thread.state = THREAD_RUNNING;
+    kernel_main_thread.task = &kernel_task;
+}
+
+__init static void init_kernel_task()
+{
+    kernel_task.pid = 1;
+    kernel_task.name = "kernel";
+    kernel_task.memory = 0;
+    init_kernel_main_thread();
+    kernel_task.main_thread = &kernel_main_thread;
+    CLIST_ADD(kernel_task.threads, &kernel_main_thread);
+    CLIST_ADD(tasks, &kernel_task);
+}
 
 void do_sth()
 {
@@ -27,15 +61,15 @@ void do_sth()
 __init void initialize_tasks()
 {
     setup_tss();
-    initialize_task(&kernel_task, "kernel", false, NULL);
+    init_kernel_task();
     current_thread = kernel_task.main_thread;
     create_thread(&kernel_task, do_sth);
 }
 
 void initialize_task(struct task *task, char *name, bool userspace, void *main)
 {
+    (void)userspace;
     task->name = name;
-    task->userspace = userspace;
     task->main_thread = create_thread(task, main);
     CLIST_ADD(task->threads, task->main_thread);
     CLIST_ADD(tasks, task);
@@ -71,30 +105,6 @@ struct thread *create_thread(struct task *task, void *main)
 
     CLIST_ADD(task->threads, thread);
     return thread;
-}
-
-void preempt_sys()
-{
-}
-
-__init void setup_tss()
-{
-    disable_irq();
-    tss_descriptor.limit15_0 = sizeof tss;
-    tss_descriptor.base_addr23_0 = (uint64_t)(&tss) & 0xFFFFFF;
-    // tss must be available, it will automatically change to busy when loaded
-    tss_descriptor.type = TSS_AVAILABLE;
-    tss_descriptor.limit19_16 = 0;
-    tss_descriptor.avl = 1;
-    tss_descriptor.base31_24 = ((uint64_t)(&tss) >> 24) & 0xFF;
-    tss_descriptor.base63_32 = ((uint64_t)(&tss) >> 32) & 0xFFFFFFFF;
-    tss_descriptor.zero = 0;
-    tss_descriptor.present = 1;
-    __asm__ volatile("push %rax");
-    __asm__ volatile("movw $0x28, %ax");
-    __asm__ volatile("ltr %ax");
-    __asm__ volatile("pop %rax");
-    enable_irq();
 }
 
 void set_current_kernel_stack(void *stack)

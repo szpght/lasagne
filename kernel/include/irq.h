@@ -95,6 +95,7 @@ extern void disable_irq();
 extern void _load_idt(struct idtr *idtr);
 extern uint64_t get_cr2();
 extern void interrupt_wrapper();
+extern void leave_interrupt_handler();
 
 void initialize_irq();
 void set_irq_handler(int irq_number, void *address, uint64_t flags);

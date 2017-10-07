@@ -1,3 +1,9 @@
+global load_tss
+load_tss:
+    mov rax, 0x28
+    ltr ax
+    ret
+
 global switch_task_sys
 switch_task_sys:
     ; save state to current stack

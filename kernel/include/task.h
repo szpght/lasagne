@@ -8,6 +8,11 @@
 #define TSS_AVAILABLE 9;
 #define TSS_BUSY 11;
 
+#define CODE_SEGMENT 0x08
+#define DATA_SEGMENT 0x10
+#define USER_CODE_SEGMENT 0x1b
+#define USER_DATA_SEGMENT 0x23
+
 extern struct tss_descriptor tss_descriptor;
 
 struct tss {
@@ -65,7 +70,8 @@ struct task {
 void initialize_tasks();
 void initialize_task(struct task *task, char *name, bool userspace, void *main);
 struct task *create_task(char *name, bool userspace, void *main);
-struct thread *create_thread(struct task *task, void *main);
+struct thread *create_kernel_thread(struct task *task, void *main);
+struct thread *create_usermode_thread(struct task *task, void *main);
 void preempt_int();
 
 extern void load_tss();

@@ -63,14 +63,14 @@ __init void initialize_tasks()
     setup_tss();
     init_kernel_task();
     current_thread = kernel_task.main_thread;
-    create_thread(&kernel_task, do_sth);
+    create_kernel_thread(&kernel_task, do_sth);
 }
 
 void initialize_task(struct task *task, char *name, bool userspace, void *main)
 {
     (void)userspace;
     task->name = name;
-    task->main_thread = create_thread(task, main);
+    task->main_thread = create_kernel_thread(task, main);
     CLIST_ADD(task->threads, task->main_thread);
     CLIST_ADD(tasks, task);
 }
@@ -82,16 +82,16 @@ struct task *create_task(char *name, bool userspace, void *main)
     return task;
 }
 
-struct thread *create_thread(struct task *task, void *main)
+static struct thread *create_thread(struct task *task, void *main, uint64_t cs, uint64_t ss)
 {
     struct thread *thread = kalloc(sizeof *thread);
 
     void* stack = kalloc(DEFAULT_STACK_SIZE);
     thread->rsp = (stack + DEFAULT_STACK_SIZE);
-    *(--thread->rsp) = 0x10; // ss
+    *(--thread->rsp) = ss;
     *(--thread->rsp) = (uint64_t) stack + DEFAULT_STACK_SIZE; // rsp
     *(--thread->rsp) = RFLAGS_IF; // rflags
-    *(--thread->rsp) = 0x8; // cs
+    *(--thread->rsp) = cs;
     *(--thread->rsp) = (uint64_t) main;
     *(--thread->rsp) = 0; // interrupt number
     for (int i = 0; i < 15; ++i) {
@@ -105,6 +105,18 @@ struct thread *create_thread(struct task *task, void *main)
 
     CLIST_ADD(task->threads, thread);
     return thread;
+}
+
+struct thread *create_kernel_thread(struct task *task, void *main)
+{
+    return create_thread(task, main, CODE_SEGMENT, DATA_SEGMENT);
+}
+
+struct thread *create_usermode_thread(struct task *task, void *main)
+{
+    // TODO prepare usermode things
+
+    return create_thread(task, main, USER_CODE_SEGMENT, USER_DATA_SEGMENT);
 }
 
 void set_current_kernel_stack(void *stack)

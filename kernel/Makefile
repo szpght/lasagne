@@ -1,7 +1,8 @@
 export CC        = x86_64-elf-gcc
 export CFLAGS_BASE = -ffreestanding -mno-mmx -mno-sse -mno-sse2 -fno-asynchronous-unwind-tables \
-	-Wall -Wextra -Werror=return-type -O0 -g3 -std=c11 -I${PWD}/include -I${PWD}/libc/include
-export CFLAGS    =  -mcmodel=kernel -mno-red-zone
+	-Wall -Wextra -Werror=return-type -g3 -std=c11 -I${PWD}/include -I${PWD}/libc/include
+export CFLAGS    =  -mcmodel=kernel -mno-red-zone -Og
+export CFLAGS32  = -m32 -O0
 export AFLAGS    = -felf64
 export LDFLAGS   = -ffreestanding -mcmodel=kernel -g3 -z max-page-size=0x1000 -T arch/x64/linker.ld -nostdlib -lgcc
 OBJS             =              \
@@ -44,7 +45,7 @@ $(KERNEL): $(OBJS) $(ELF32) $(OBJS32)
 $(ISO): $(IMAGE)
 	./buildiso.sh $(IMAGE) $(ISO)
 
-$(OBJS32): EXTRA_FLAGS := -m32
+$(OBJS32): EXTRA_FLAGS := $(CFLAGS32)
 
 $(OBJS): EXTRA_FLAGS := $(CFLAGS)
 

@@ -7,6 +7,15 @@
 
 static uintptr_t zero_page;
 
+__init static void disable_identity_paging()
+{
+    struct pt_entries e = ptes(0);
+    // must be in this order
+    *e.entries[1] = 0;
+    *e.entries[0] = 0;
+    reload_paging();
+}
+
 __init void initialize_virtual_memory()
 {
     zero_page = get_frame();
@@ -17,6 +26,7 @@ __init void initialize_virtual_memory()
     memset(zero_page_v, 0, 4096);
     map_page((uintptr_t) zero_page_v, old_addr, PG_PRESENT | PG_RW);
     set_irq_handler(14, page_fault_handler, INT_HANDLER_ERRORCODE);
+    disable_identity_paging();
 }
 
 void reload_paging()
@@ -71,7 +81,7 @@ static void ensure_pt_exists(struct pt_entries *entries)
             continue;
         }
 
-        *entries->entries[i] = get_frame() | PG_PRESENT | PG_RW;
+        *entries->entries[i] = get_frame() | PG_PRESENT | PG_RW | PG_USER;
         // TODO get zeroed page from frame allocator
         // zeroing newly created pt
         uintptr_t new_pt =  ((uint64_t) entries->entries[i + 1] & ~0xFFFL);

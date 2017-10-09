@@ -1,9 +1,9 @@
 export CC        = x86_64-elf-gcc
 export CFLAGS_BASE = -ffreestanding -mno-mmx -mno-sse -mno-sse2 -fno-asynchronous-unwind-tables \
-	-Wall -Wextra -Werror=return-type -O0 -std=c11 -I${PWD}/include -I${PWD}/libc/include
+	-Wall -Wextra -Werror=return-type -O0 -g3 -std=c11 -I${PWD}/include -I${PWD}/libc/include
 export CFLAGS    =  -mcmodel=kernel -mno-red-zone
 export AFLAGS    = -felf64
-export LDFLAGS   = -ffreestanding -mcmodel=kernel -z max-page-size=0x1000 -T arch/x64/linker.ld -nostdlib -lgcc
+export LDFLAGS   = -ffreestanding -mcmodel=kernel -g3 -z max-page-size=0x1000 -T arch/x64/linker.ld -nostdlib -lgcc
 OBJS             =              \
 	arch/x64/boot.o             \
 	arch/x64/init.o             \
@@ -58,11 +58,14 @@ image: $(IMAGE)
 
 iso: $(ISO)
 
-emulate: $(ISO)
+bochs: $(ISO)
 	bochs -q
+
+gdb: $(ISO)
+	./gdb.sh $(IMAGE) $(ISO)
 
 clean:
 	#@make -C stdc clean
 	rm -rvf $(KERNEL) $(IMAGE) $(ISO) $(OBJS) $(OBJS32) iso-build/ bochsout.txt
 
-.PHONY: clean emulate image iso elf32
+.PHONY: bochs clean elf32 image iso gdb

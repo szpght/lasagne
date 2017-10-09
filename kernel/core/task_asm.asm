@@ -64,3 +64,10 @@ switch_task_int:
 
     pop rbp
     ret
+
+global usermode_function
+usermode_function:
+    xchg bx, bx
+    mov rax, 0xdeadbeef
+    .over
+    jmp .over

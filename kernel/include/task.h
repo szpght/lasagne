@@ -71,8 +71,9 @@ void initialize_tasks();
 void initialize_task(struct task *task, char *name, bool userspace, void *main);
 struct task *create_task(char *name, bool userspace, void *main);
 struct thread *create_kernel_thread(struct task *task, void *main);
-struct thread *create_usermode_thread(struct task *task, void *main);
+struct thread *create_usermode_thread(struct task *task, void *main, uint64_t stack);
 void preempt_int();
+void create_usermode_task();
 
 extern void load_tss();
 extern void switch_task_sys(uint64_t **old_rsp, uint64_t *new_rsp);

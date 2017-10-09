@@ -2,6 +2,7 @@
 #include <string.h>
 #include <mm/memory_map.h>
 #include <mm/alloc.h>
+#include <mm/pages.h>
 #include <printk.h>
 #include <ds.h>
 #include <irq.h>
@@ -64,6 +65,7 @@ __init void initialize_tasks()
     init_kernel_task();
     current_thread = kernel_task.main_thread;
     create_kernel_thread(&kernel_task, do_sth);
+    create_usermode_task();
 }
 
 void initialize_task(struct task *task, char *name, bool userspace, void *main)
@@ -82,14 +84,20 @@ struct task *create_task(char *name, bool userspace, void *main)
     return task;
 }
 
-static struct thread *create_thread(struct task *task, void *main, uint64_t cs, uint64_t ss)
+static struct thread *create_thread(struct task *task, void *main,
+    uint64_t cs, uint64_t ss, uint64_t usermode_stack)
 {
     struct thread *thread = kalloc(sizeof *thread);
 
     void* stack = kalloc(DEFAULT_STACK_SIZE);
     thread->rsp = (stack + DEFAULT_STACK_SIZE);
     *(--thread->rsp) = ss;
-    *(--thread->rsp) = (uint64_t) stack + DEFAULT_STACK_SIZE; // rsp
+    if (!usermode_stack) {
+        *(--thread->rsp) = (uint64_t) stack + DEFAULT_STACK_SIZE; // rsp
+    }
+    else {
+        *(--thread->rsp) = usermode_stack;
+    }
     *(--thread->rsp) = RFLAGS_IF; // rflags
     *(--thread->rsp) = cs;
     *(--thread->rsp) = (uint64_t) main;
@@ -109,14 +117,32 @@ static struct thread *create_thread(struct task *task, void *main, uint64_t cs, 
 
 struct thread *create_kernel_thread(struct task *task, void *main)
 {
-    return create_thread(task, main, CODE_SEGMENT, DATA_SEGMENT);
+    return create_thread(task, main, CODE_SEGMENT, DATA_SEGMENT, 0);
 }
 
-struct thread *create_usermode_thread(struct task *task, void *main)
+struct thread *create_usermode_thread(struct task *task, void *main, uint64_t stack)
 {
-    // TODO prepare usermode things
+    return create_thread(task, main, USER_CODE_SEGMENT, USER_DATA_SEGMENT, stack);
+}
 
-    return create_thread(task, main, USER_CODE_SEGMENT, USER_DATA_SEGMENT);
+extern void usermode_function();
+
+void create_usermode_task()
+{
+    void *virtual_memory_start = (void*) (1024 * 1024);
+    map_range(virtual_memory_start, 4096, MAP_RW | MAP_EXE | MAP_USER);
+    memcpy(virtual_memory_start, usermode_function, 100);
+
+    void *stack = (void*) (2 * 1024 * 1024);
+    map_range(stack, 4096, MAP_RW | MAP_EXE | MAP_USER);
+
+    struct task *task = kalloc(sizeof(*task));
+    task->next = task->prev = task->threads = NULL;
+    task->name = "user_process";
+    task->pid = 2;
+    task->memory = ptes(0).entries[0][0];
+    task->main_thread = create_usermode_thread(task, virtual_memory_start, stack + 4096);
+    LIST_ADD(tasks, task);
 }
 
 void set_current_kernel_stack(void *stack)
@@ -127,6 +153,8 @@ void set_current_kernel_stack(void *stack)
 void preempt_int()
 {
     struct thread *old_thread = current_thread;
-    current_thread = current_thread->next;
+    current_thread = tasks->threads;
+    tasks = tasks->next;
+    tasks->threads = tasks->threads->next;
     switch_task_int(&old_thread->rsp, current_thread->rsp);
 }

@@ -91,6 +91,7 @@ static struct thread *create_thread(struct task *task, void *main,
 
     void* stack = kalloc(DEFAULT_STACK_SIZE);
     thread->rsp = (stack + DEFAULT_STACK_SIZE);
+    thread->stack_top = (stack + DEFAULT_STACK_SIZE);
     *(--thread->rsp) = ss;
     if (!usermode_stack) {
         *(--thread->rsp) = (uint64_t) stack + DEFAULT_STACK_SIZE; // rsp
@@ -156,5 +157,6 @@ void preempt_int()
     current_thread = tasks->threads;
     tasks = tasks->next;
     tasks->threads = tasks->threads->next;
+    set_current_kernel_stack(current_thread->stack_top);
     switch_task_int(&old_thread->rsp, current_thread->rsp);
 }

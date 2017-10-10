@@ -51,6 +51,7 @@ enum thread_state {
 struct thread {
     enum thread_state state;
     uint64_t *rsp;
+    uint64_t *stack_top;
     struct task *task;
     struct thread *next;
     struct thread *prev;

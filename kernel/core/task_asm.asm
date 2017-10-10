@@ -67,7 +67,14 @@ switch_task_int:
 
 global usermode_function
 usermode_function:
-    xchg bx, bx
-    mov rax, 0xdeadbeef
+    mov rax, 1
+    mov rdi, .text_to_print
+    int 0x30
+    mov rax, 2
+    int 0x30
     .over
+    xor rax, rax
+    int 0x30
     jmp .over
+    .text_to_print:
+    db 'Hello from user mode', 10, 0

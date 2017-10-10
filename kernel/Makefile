@@ -17,6 +17,7 @@ OBJS             =              \
 	core/assert.o               \
 	core/printk.o               \
 	core/task_asm.o             \
+	core/syscall.o              \
 	libc/string.o               \
 	mm/frame.o                  \
 	mm/memory_map.o             \

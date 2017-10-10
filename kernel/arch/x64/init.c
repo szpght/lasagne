@@ -8,6 +8,7 @@
 #include <irq.h>
 #include <task.h>
 #include <io/pit.h>
+#include <syscall.h>
 
 __init void initialize(void *multiboot_information)
 {
@@ -20,6 +21,7 @@ __init void initialize(void *multiboot_information)
     initialize_kernel_heap();
 
     initialize_tasks();
+    initialize_syscalls();
     pit_initialize();
     printk("SYSTEM BOOT COMPLETE\n");
 

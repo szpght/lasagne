@@ -7,8 +7,10 @@
 
 static void set_counter()
 {
-    outb(PIT_CH0, 0xFF);
-    outb(PIT_CH0, 0xFF);
+    int target_freq_hz = 1000;
+    int divisor = 1193182 / target_freq_hz;
+    outb(PIT_CH0, divisor);
+    outb(PIT_CH0, divisor >> 8);
 }
 
 __init void pit_initialize()

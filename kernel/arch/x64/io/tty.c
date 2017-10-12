@@ -2,6 +2,7 @@
 #include <mm/memory_map.h>
 #include <io/tty.h>
 #include <io/ports.h>
+#include <string.h>
 
 static struct {
     int row;
@@ -12,44 +13,38 @@ static struct {
     int buffer_height;
     int tab;
     struct tty_style style;
-    uint16_t buffer[80 * 30];
-} tty_state;
+    uint16_t buffer[30][80];
+} tty;
 
-static uint16_t *tty_buffer = KERNEL_VMA + 0xb8000;
+static uint16_t* const tty_buffer = KERNEL_VMA + 0xb8000;
 
 static void buffer_row_up()
 {
-    tty_state.buffer_row = (tty_state.buffer_row + 1) % tty_state.buffer_height;
-    uint16_t *row = tty_state.buffer + tty_state.width * tty_state.buffer_row;
-    for (int i = 0; i < tty_state.width; ++i) {
-        row[i] = 0;
-    }
+    tty.buffer_row = (tty.buffer_row + 1) % tty.buffer_height;
+    memset(tty.buffer[tty.buffer_row], 0, sizeof(*tty.buffer));
 }
 
 static void line_up()
 {
     buffer_row_up();
-    if (tty_state.row < tty_state.height - 1) {
-        tty_state.row += 1;
+    if (tty.row < tty.height - 1) {
+        tty.row += 1;
         return;
     }
 
     // write shifted text to video memory
-    int start_position = (tty_state.buffer_row - tty_state.height + 1) % tty_state.buffer_height;
-    if (start_position < 0) {
-        start_position += tty_state.buffer_height;
+    int start_line = (tty.buffer_row - tty.height + 1) % tty.buffer_height;
+    if (start_line < 0) {
+        start_line += tty.buffer_height;
     }
-    uint16_t *buffer = tty_buffer;
+
     int row = 0;
-    for (int i = start_position; i != tty_state.buffer_row; i = (i + 1) % tty_state.buffer_height) {
-        for (int j = 0; j < tty_state.width; ++j) {
-            buffer[tty_state.width * row + j] = tty_state.buffer[tty_state.width * i + j];
-        }
+    for (int i = start_line; i != tty.buffer_row; i = (i + 1) % tty.buffer_height) {
+        memcpy(&tty_buffer[tty.width * row], tty.buffer[i], sizeof(*tty.buffer));
         ++row;
     }
-    for (int i = 0; i < tty_state.width; ++i) {
-    tty_buffer[tty_state.width * row + i] = 0;
-    }
+
+    memset(tty_buffer + tty.width * row, 0, tty.width * sizeof(*tty_buffer));
 }
 
 static void special_char(uint32_t c)
@@ -59,13 +54,13 @@ static void special_char(uint32_t c)
         line_up();
     // fall through
     case '\r':
-        tty_state.col = 0;
+        tty.col = 0;
         break;
     case '\t':
-        tty_state.col += tty_state.tab - tty_state.col % tty_state.tab;
+        tty.col += tty.tab - tty.col % tty.tab;
 
-        if (tty_state.col + 1 > tty_state.width) {
-            tty_state.col = tty_state.col % tty_state.width;
+        if (tty.col + 1 > tty.width) {
+            tty.col = tty.col % tty.width;
             line_up();
         }
         break;
@@ -74,14 +69,30 @@ static void special_char(uint32_t c)
 
 static void put_char(uint32_t c)
 {
-    if (tty_state.col == tty_state.width) {
+    if (tty.col == tty.width) {
         line_up();
-        tty_state.col = 0;
+        tty.col = 0;
     }
-    uint16_t ch = tty_state.style.fg << 8 | tty_state.style.bg << 12 | c;
-    tty_buffer[tty_state.row * tty_state.width + tty_state.col] = ch;
-    tty_state.buffer[tty_state.buffer_row * tty_state.width + tty_state.col] = ch;
-    tty_state.col += 1;
+    uint16_t ch = tty.style.fg << 8 | tty.style.bg << 12 | c;
+    tty_buffer[tty.row * tty.width + tty.col] = ch;
+    tty.buffer[tty.buffer_row][tty.col] = ch;
+    tty.col += 1;
+}
+
+__init void tty_initialize()
+{
+    tty.row = tty.col = 0;
+    tty.buffer_row = 0;
+    tty.buffer_height = 30;
+    tty.width = 80;
+    tty.height = 25;
+    tty.tab = 8;
+    tty.style.fg = TTY_COLOR_WHITE;
+    tty.style.bg = TTY_COLOR_BLACK;
+    tty.style.flags = 0;
+
+    memset(tty.buffer, 0, sizeof(tty.buffer));
+    tty_clear();
 }
 
 void tty_putchar(uint32_t c)
@@ -99,29 +110,10 @@ void tty_putchar(uint32_t c)
     }
 }
 
-__init void tty_initialize()
-{
-    tty_state.row = tty_state.col = 0;
-    tty_state.buffer_row = 0;
-    tty_state.buffer_height = 30;
-    tty_state.width = 80;
-    tty_state.height = 25;
-    tty_state.tab = 8;
-    tty_state.style.fg = TTY_COLOR_WHITE;
-    tty_state.style.bg = TTY_COLOR_BLACK;
-    tty_state.style.flags = 0;
-
-    int buffer_size = tty_state.width * tty_state.buffer_height;
-    for (int i = 0; i < buffer_size; ++i) {
-        tty_state.buffer[i] = 0;
-    }
-    tty_clear();
-}
-
 void tty_set_color(enum tty_color foreground, enum tty_color background)
 {
-    tty_state.style.fg = foreground;
-    tty_state.style.bg = background;
+    tty.style.fg = foreground;
+    tty.style.bg = background;
 }
 
 void tty_putstring(char *string)
@@ -134,18 +126,16 @@ void tty_putstring(char *string)
 
 void tty_set_tab_size(int size)
 {
-    if (size > 0 && size < tty_state.width) {
-        tty_state.tab = size;
+    if (size > 0 && size < tty.width) {
+        tty.tab = size;
     }
 }
 
 void tty_clear()
 {
     buffer_row_up();
-    int size = tty_state.width * tty_state.height;
-    for (int i = 0; i < size; ++i) {
-        tty_buffer[i] = 0;
-    }
-    tty_state.col = 0;
-    tty_state.row = 0;
+    int size = tty.width * tty.height * sizeof(*tty_buffer);
+    memset(tty_buffer, 0, size);
+    tty.col = 0;
+    tty.row = 0;
 }

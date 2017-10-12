@@ -19,6 +19,7 @@ OBJS             =              \
 	core/task_asm.o             \
 	core/syscall.o              \
 	libc/string.o               \
+	libc/string_asm.o           \
 	mm/frame.o                  \
 	mm/memory_map.o             \
 	mm/pages.o                  \

@@ -13,6 +13,8 @@
 #define USER_CODE_SEGMENT 0x1b
 #define USER_DATA_SEGMENT 0x23
 
+typedef uint64_t pid_t;
+
 extern struct tss_descriptor tss_descriptor;
 
 struct tss {
@@ -59,7 +61,7 @@ struct thread {
 
 
 struct task {
-    int pid;
+    pid_t pid;
     char *name;
     uintptr_t memory;
     struct thread *main_thread;
@@ -75,6 +77,7 @@ struct thread *create_kernel_thread(struct task *task, void *main);
 struct thread *create_usermode_thread(struct task *task, void *main, uint64_t stack);
 void preempt_int();
 void create_usermode_task();
+pid_t get_current_task_pid();
 
 extern void load_tss();
 extern void switch_task_sys(uint64_t **old_rsp, uint64_t *new_rsp);

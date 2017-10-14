@@ -9,14 +9,15 @@
 
 struct tss tss;
 
-struct task kernel_task;
-struct thread kernel_main_thread;
-struct task *tasks;
-struct thread *current_thread;
+static struct task kernel_task;
+static struct thread kernel_main_thread;
+static struct task *tasks;
+static struct thread *current_thread;
+
+static pid_t next_pid = 1;
 
 __init static void setup_tss()
 {
-    disable_irq();
     tss_descriptor.limit15_0 = sizeof tss;
     tss_descriptor.base_addr23_0 = (uint64_t)(&tss) & 0xFFFFFF;
     // tss must be available, it will automatically change to busy when loaded
@@ -28,7 +29,6 @@ __init static void setup_tss()
     tss_descriptor.zero = 0;
     tss_descriptor.present = 1;
     load_tss();
-    enable_irq();
 }
 
 __init static void init_kernel_main_thread()
@@ -39,7 +39,7 @@ __init static void init_kernel_main_thread()
 
 __init static void init_kernel_task()
 {
-    kernel_task.pid = 1;
+    kernel_task.pid = 0;
     kernel_task.name = "kernel";
     kernel_task.memory = 0;
     init_kernel_main_thread();
@@ -65,6 +65,7 @@ __init void initialize_tasks()
     init_kernel_task();
     current_thread = kernel_task.main_thread;
     create_kernel_thread(&kernel_task, do_sth);
+    create_usermode_task();
     create_usermode_task();
 }
 
@@ -116,6 +117,23 @@ static struct thread *create_thread(struct task *task, void *main,
     return thread;
 }
 
+static void new_address_space()
+{
+    struct pt_entries e = ptes(0);
+    *e.entries[0] = 0;
+    reload_paging();
+}
+
+static void set_address_space(uintptr_t pdpt)
+{
+    struct pt_entries e = ptes(0);
+    uintptr_t old = *e.entries[0];
+    if (old != pdpt) {
+        *e.entries[0] = pdpt;
+        reload_paging();
+    }
+}
+
 struct thread *create_kernel_thread(struct task *task, void *main)
 {
     return create_thread(task, main, CODE_SEGMENT, DATA_SEGMENT, 0);
@@ -130,6 +148,7 @@ extern void usermode_function();
 
 void create_usermode_task()
 {
+    new_address_space();
     void *virtual_memory_start = (void*) (1024 * 1024);
     map_range(virtual_memory_start, 4096, MAP_RW | MAP_EXE | MAP_USER);
     memcpy(virtual_memory_start, usermode_function, 100);
@@ -140,7 +159,7 @@ void create_usermode_task()
     struct task *task = kalloc(sizeof(*task));
     task->next = task->prev = task->threads = NULL;
     task->name = "user_process";
-    task->pid = 2;
+    task->pid = next_pid++;
     task->memory = ptes(0).entries[0][0];
     task->main_thread = create_usermode_thread(task, virtual_memory_start, stack + 4096);
     LIST_ADD(tasks, task);
@@ -155,8 +174,17 @@ void preempt_int()
 {
     struct thread *old_thread = current_thread;
     current_thread = tasks->threads;
+    struct task *current_task = current_thread->task;
+    if (current_task->memory) {
+        set_address_space(current_task->memory);
+    }
     tasks = tasks->next;
     tasks->threads = tasks->threads->next;
     set_current_kernel_stack(current_thread->stack_top);
     switch_task_int(&old_thread->rsp, current_thread->rsp);
+}
+
+pid_t get_current_task_pid()
+{
+    return current_thread->task->pid;
 }

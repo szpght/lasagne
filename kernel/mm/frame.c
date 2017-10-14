@@ -5,6 +5,8 @@
 #include <mm/memory_map.h>
 #include <printk.h>
 
+#define INVLPG(addr) __asm__ volatile ("invlpg (%0)" : : "b"(addr) : "memory")
+
 struct allocator default_frame_allocator;
 
 __init void initialize_frame_allocation()
@@ -30,6 +32,17 @@ static int64_t intersection(uint64_t beginA, uint64_t endA, uint64_t beginB, uin
 
     int64_t diff = minEnd - maxBegin;
     return diff > 0 ? diff : 0;
+}
+
+static void zero_frame(uint64_t frame_addr)
+{
+    assert(frame_addr % PAGE_SIZE == 0);
+    // TODO use mechanism like kmap
+    uint64_t *frame = (uint64_t *)0xFFFFFFFF80001000;
+    uint64_t *frame_pte = (uint64_t *)0xffffff7fffc00008;
+    *frame_pte = frame_addr | 3;
+    INVLPG(frame);
+    memset(frame, 0, PAGE_SIZE);
 }
 
 void alloc_init(struct allocator *alloc, uint64_t begin, uint64_t end,
@@ -90,7 +103,7 @@ static uint64_t current(struct allocator *alloc)
 
 static struct allocator_node *map(struct allocator *alloc, uint64_t addr)
 {
-    __asm__ volatile ("invlpg (%0)" : : "b"(alloc->current_address) : "memory");
+    INVLPG(alloc->current_address);
     if (!addr) {
         return NULL;
     }
@@ -130,6 +143,7 @@ uint64_t alloc_frame(struct allocator *alloc)
     assert(frame != (uint64_t)-1);
 
     alloc->free -= PAGE_SIZE;
+    zero_frame(frame);
     return frame;
 }
 

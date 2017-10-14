@@ -5,6 +5,8 @@
 #include <printk.h>
 #include <task.h>
 
+static uint64_t pit_ticks;
+
 static void set_counter()
 {
     int target_freq_hz = 1000;
@@ -26,6 +28,12 @@ __init void pit_initialize()
 
 void pit_handler()
 {
+    pit_ticks += 1;
     irq_eoi();
     preempt_int();
+}
+
+uint64_t get_tick_count()
+{
+    return pit_ticks;
 }

@@ -9,3 +9,4 @@
 
 void pit_initialize();
 void pit_handler();
+uint64_t get_tick_count();

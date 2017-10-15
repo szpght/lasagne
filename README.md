@@ -1,7 +1,7 @@
-# Lasagne
+![Lasagne](media/logo.svg)
 
 Lasagne is an attempt to create amd64 operating system.
-At this moment it has 
+At this moment it has
 - simple memory manager that supports lazy memory allocation
   at an arbitrary virtual address and buddy allocator for kernel heap
 - interrupt handling API that enables you to register any function written in C
@@ -30,4 +30,8 @@ make emulate
 ```
 
 ## Screenshots
-[You can see screenshots on a wiki page](https://github.com/szpght/lasagne/wiki/Screenshots)
+[You can see screenshots on a wiki page](https://github.com/szpght/lasagne/wiki/Screenshots).
+
+## Credits
+
+Logo created by [@logarytm](https://github.com/logarytm).

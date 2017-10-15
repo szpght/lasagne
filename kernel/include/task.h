@@ -46,11 +46,12 @@ struct tss_descriptor {
 enum thread_state {
     THREAD_RUNNING,
     THREAD_WAITING,
-    THREAD_RETURNED
+    THREAD_IDLE
 };
 
 
 struct thread {
+    pid_t tid;
     enum thread_state state;
     uint64_t *rsp;
     uint64_t *stack_top;
@@ -71,8 +72,6 @@ struct task {
 };
 
 void initialize_tasks();
-void initialize_task(struct task *task, char *name, bool userspace, void *main);
-struct task *create_task(char *name, bool userspace, void *main);
 struct thread *create_kernel_thread(struct task *task, void *main);
 struct thread *create_usermode_thread(struct task *task, void *main, uint64_t stack);
 void preempt_int();
@@ -82,3 +81,4 @@ pid_t get_current_task_pid();
 extern void load_tss();
 extern void switch_task_sys(uint64_t **old_rsp, uint64_t *new_rsp);
 extern void switch_task_int(uint64_t **old_rsp, uint64_t *new_rsp);
+extern void idle_thread();

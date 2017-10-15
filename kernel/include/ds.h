@@ -38,6 +38,10 @@
     if ((value)->prev != __LIST_FREE_ELEMENT)  \
         (value)->prev->next = (value)->next;
 
+// move pointer to next element
+#define LIST_NEXT(node)  \
+    ((node) = (node)->next)
+
 #define LIST_ADD(list, value) __WRAP_IN_DO_WHILE(__LIST_ADD((list), (value)))
 #define CLIST_ADD(list, value) __WRAP_IN_DO_WHILE(__CLIST_ADD((list), (value)))
 #define LIST_REMOVE(value) __WRAP_IN_DO_WHILE(__LIST_REMOVE(value))

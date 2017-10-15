@@ -78,3 +78,8 @@ usermode_function:
     jmp .over
     .text_to_print:
     db 'Hello from user mode', 10, 0
+
+global idle_thread
+idle_thread:
+    hlt
+    jmp idle_thread

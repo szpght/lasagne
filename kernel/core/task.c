@@ -11,10 +11,13 @@ struct tss tss;
 
 static struct task kernel_task;
 static struct thread kernel_main_thread;
-static struct task *tasks;
+static struct thread *kernel_idle_thread;
+
+static struct task *current_task;
 static struct thread *current_thread;
 
 static pid_t next_pid = 1;
+static pid_t next_tid = 1;
 
 __init static void setup_tss()
 {
@@ -33,8 +36,15 @@ __init static void setup_tss()
 
 __init static void init_kernel_main_thread()
 {
+    kernel_main_thread.tid = 0;
     kernel_main_thread.state = THREAD_RUNNING;
     kernel_main_thread.task = &kernel_task;
+}
+
+__init static void init_kernel_idle_thread()
+{
+    kernel_idle_thread = create_kernel_thread(&kernel_task, idle_thread);
+    kernel_idle_thread->state = THREAD_WAITING;
 }
 
 __init static void init_kernel_task()
@@ -43,9 +53,10 @@ __init static void init_kernel_task()
     kernel_task.name = "kernel";
     kernel_task.memory = 0;
     init_kernel_main_thread();
+    init_kernel_idle_thread();
     kernel_task.main_thread = &kernel_main_thread;
     CLIST_ADD(kernel_task.threads, &kernel_main_thread);
-    CLIST_ADD(tasks, &kernel_task);
+    CLIST_ADD(current_task, &kernel_task);
 }
 
 void do_sth()
@@ -67,22 +78,6 @@ __init void initialize_tasks()
     create_kernel_thread(&kernel_task, do_sth);
     create_usermode_task();
     create_usermode_task();
-}
-
-void initialize_task(struct task *task, char *name, bool userspace, void *main)
-{
-    (void)userspace;
-    task->name = name;
-    task->main_thread = create_kernel_thread(task, main);
-    CLIST_ADD(task->threads, task->main_thread);
-    CLIST_ADD(tasks, task);
-}
-
-struct task *create_task(char *name, bool userspace, void *main)
-{
-    struct task *task = kalloc(sizeof *task);
-    initialize_task(task, name, userspace, main);
-    return task;
 }
 
 static struct thread *create_thread(struct task *task, void *main,
@@ -112,8 +107,16 @@ static struct thread *create_thread(struct task *task, void *main,
 
     thread->state = THREAD_RUNNING;
     thread->task = task;
+    thread->tid = next_tid++;
 
-    CLIST_ADD(task->threads, thread);
+    // add new thread as next element of list
+    struct thread *tmp = task->threads;
+    if (tmp) {
+        CLIST_ADD(tmp, thread);
+    }
+    else {
+        CLIST_ADD(task->threads, thread);
+    }
     return thread;
 }
 
@@ -157,12 +160,21 @@ void create_usermode_task()
     map_range(stack, 4096, MAP_RW | MAP_EXE | MAP_USER);
 
     struct task *task = kalloc(sizeof(*task));
-    task->next = task->prev = task->threads = NULL;
+    task->next = task->prev = NULL;
+    task->threads = NULL;
     task->name = "user_process";
     task->pid = next_pid++;
     task->memory = ptes(0).entries[0][0];
     task->main_thread = create_usermode_thread(task, virtual_memory_start, stack + 4096);
-    LIST_ADD(tasks, task);
+
+    // add new task as next element of list
+    struct task *tmp = current_task;
+    if (tmp) {
+        CLIST_ADD(tmp, task);
+    }
+    else {
+        CLIST_ADD(current_task, task);
+    }
 }
 
 void set_current_kernel_stack(void *stack)
@@ -170,18 +182,45 @@ void set_current_kernel_stack(void *stack)
     tss.rsp0 = stack;
 }
 
+static void switch_context(struct thread *old_thread, struct thread *new_thread)
+{
+    if (old_thread == new_thread) {
+        return;
+    }
+
+    uintptr_t memory = new_thread->task->memory;
+    if (memory) {
+        set_address_space(memory);
+    }
+    set_current_kernel_stack(new_thread->stack_top);
+    switch_task_int(&old_thread->rsp, new_thread->rsp);
+}
+
 void preempt_int()
 {
     struct thread *old_thread = current_thread;
-    current_thread = tasks->threads;
-    struct task *current_task = current_thread->task;
-    if (current_task->memory) {
-        set_address_space(current_task->memory);
-    }
-    tasks = tasks->next;
-    tasks->threads = tasks->threads->next;
-    set_current_kernel_stack(current_thread->stack_top);
-    switch_task_int(&old_thread->rsp, current_thread->rsp);
+    struct task *old_task = current_task;
+
+    // find next runnable thread
+    do {
+        LIST_NEXT(current_task);
+        struct thread *first_thread = current_task->threads;
+
+        do {
+            LIST_NEXT(current_task->threads);
+            if (current_task->threads->state == THREAD_RUNNING) {
+                current_thread = current_task->threads;
+                switch_context(old_thread, current_thread);
+                return;
+            }
+
+        } while(current_task->threads != first_thread);
+    } while(current_task != old_task);
+
+    // if no runnable thread found, switch to idle thread
+    current_task = &kernel_task;
+    current_thread = kernel_idle_thread;
+    switch_context(old_thread, current_thread);
 }
 
 pid_t get_current_task_pid()

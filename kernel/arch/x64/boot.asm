@@ -257,19 +257,19 @@ GDT64:                           ; Global Descriptor Table (64-bit).
     db 10010010b                 ; Access (read/write).
     db 00000000b                 ; Granularity.
     db 0                         ; Base (high).
-    .usercode: equ $ - GDT64     ; The code descriptor.
-    dw 0                         ; Limit (low).
-    dw 0                         ; Base (low).
-    db 0                         ; Base (middle)
-    db 11111010b                 ; Access (exec/read).
-    db 00100000b                 ; Granularity.
-    db 0                         ; Base (high).
     .userdata: equ $ - GDT64     ; The data descriptor.
     dw 0                         ; Limit (low).
     dw 0                         ; Base (low).
     db 0                         ; Base (middle)
     db 11110010b                 ; Access (read/write).
     db 00000000b                 ; Granularity.
+    db 0                         ; Base (high).
+    .usercode: equ $ - GDT64     ; The code descriptor.
+    dw 0                         ; Limit (low).
+    dw 0                         ; Base (low).
+    db 0                         ; Base (middle)
+    db 11111010b                 ; Access (exec/read).
+    db 00100000b                 ; Granularity.
     db 0                         ; Base (high).
     .tss: equ $ - GDT64
     times 16 db 0 ; will be filled at runtime

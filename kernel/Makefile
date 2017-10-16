@@ -13,11 +13,12 @@ OBJS             =              \
 	arch/x64/multiboot.o        \
 	arch/x64/io/tty.o           \
 	arch/x64/io/pit.o           \
-	arch/x64/io/ports.o         \
+	arch/x64/io/io.o            \
 	core/assert.o               \
 	core/printk.o               \
 	core/task_asm.o             \
 	core/syscall.o              \
+	core/syscall_asm.o          \
 	libc/string.o               \
 	libc/string_asm.o           \
 	mm/frame.o                  \

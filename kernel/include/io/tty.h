@@ -1,5 +1,5 @@
 #pragma once
-#include <types.h>
+#include <stdint.h>
 
 enum tty_color {
     TTY_COLOR_BLACK = 0,

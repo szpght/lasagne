@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <io/tty.h>
 #include <stdbool.h>
-#include <io/ports.h>
+#include <io/io.h>
 
 //void (*backend)(char) = tty_putchar;
 void backend(char c)

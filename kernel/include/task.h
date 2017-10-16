@@ -8,10 +8,10 @@
 #define TSS_AVAILABLE 9;
 #define TSS_BUSY 11;
 
-#define CODE_SEGMENT 0x08
-#define DATA_SEGMENT 0x10
-#define USER_CODE_SEGMENT 0x1b
-#define USER_DATA_SEGMENT 0x23
+#define CODE_SEGMENT 0x08ULL
+#define DATA_SEGMENT 0x10ULL
+#define USER_DATA_SEGMENT 0x1bULL
+#define USER_CODE_SEGMENT 0x23ULL
 
 typedef uint64_t pid_t;
 
@@ -19,11 +19,11 @@ extern struct tss_descriptor tss_descriptor;
 
 struct tss {
     uint32_t reserved;
-    uint64_t* rsp0;
-    uint64_t* rsp1;
-    uint64_t* rsp2;
+    uint64_t rsp0;
+    uint64_t rsp1;
+    uint64_t rsp2;
     uint64_t reserved2;
-    uint64_t* ist[7];
+    uint64_t ist[7];
     uint64_t reserved3;
     uint16_t reserved4;
     uint16_t iomap_base_addr;
@@ -51,10 +51,11 @@ enum thread_state {
 
 
 struct thread {
+    uintptr_t user_rsp;
+    uintptr_t stack_top;
     pid_t tid;
-    enum thread_state state;
     uint64_t *rsp;
-    uint64_t *stack_top;
+    enum thread_state state;
     struct task *task;
     struct thread *next;
     struct thread *prev;
@@ -75,6 +76,7 @@ void initialize_tasks();
 struct thread *create_kernel_thread(struct task *task, void *main);
 struct thread *create_usermode_thread(struct task *task, void *main, uint64_t stack);
 void preempt_int();
+void preempt_syscall();
 void create_usermode_task();
 pid_t get_current_task_pid();
 

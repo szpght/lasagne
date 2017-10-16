@@ -1,7 +1,7 @@
 #include <mm/memory_map.h>
 #include <io/pit.h>
 #include <irq.h>
-#include <io/ports.h>
+#include <io/io.h>
 #include <printk.h>
 #include <task.h>
 

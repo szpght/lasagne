@@ -6,6 +6,7 @@
 #include <printk.h>
 #include <ds.h>
 #include <irq.h>
+#include <io/io.h>
 
 struct tss tss;
 
@@ -61,7 +62,7 @@ __init static void init_kernel_task()
 
 void do_sth()
 {
-    static int counter = 0;
+    int counter = 0;
     while (1) {
         for (int i = 0; i < 5000000; ++i) {
             __asm__ volatile ("nop");
@@ -120,19 +121,24 @@ static struct thread *create_thread(struct task *task, void *main,
     return thread;
 }
 
-static void new_address_space()
+static uintptr_t* get_address_space_ptr()
 {
     struct pt_entries e = ptes(0);
-    *e.entries[0] = 0;
+    return e.entries[0];
+}
+
+static void new_address_space()
+{
+    uintptr_t *ptr = get_address_space_ptr();
+    *ptr = 0;
     reload_paging();
 }
 
 static void set_address_space(uintptr_t pdpt)
 {
-    struct pt_entries e = ptes(0);
-    uintptr_t old = *e.entries[0];
-    if (old != pdpt) {
-        *e.entries[0] = pdpt;
+    uintptr_t *old = get_address_space_ptr();
+    if (*old != pdpt) {
+        *old = pdpt;
         reload_paging();
     }
 }
@@ -177,50 +183,69 @@ void create_usermode_task()
     }
 }
 
-void set_current_kernel_stack(void *stack)
+void set_current_kernel_stack(uintptr_t stack)
 {
     tss.rsp0 = stack;
 }
 
-static void switch_context(struct thread *old_thread, struct thread *new_thread)
+static void switch_environment(struct thread *old_thread, struct thread *new_thread)
 {
     if (old_thread == new_thread) {
         return;
     }
 
+    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t) new_thread);
     uintptr_t memory = new_thread->task->memory;
     if (memory) {
         set_address_space(memory);
     }
     set_current_kernel_stack(new_thread->stack_top);
-    switch_task_int(&old_thread->rsp, new_thread->rsp);
+}
+
+static struct thread *schedule()
+{
+    struct thread *old_thread = current_thread;
+    struct task *old_task = current_task;
+    struct task *new_task = current_task;
+
+    // find next runnable thread
+    do {
+        LIST_NEXT(new_task);
+        struct thread *first_thread = new_task->threads;
+
+        do {
+            LIST_NEXT(new_task->threads);
+            if (new_task->threads->state == THREAD_RUNNING) {
+                return new_task->threads;
+            }
+
+        } while(new_task->threads != first_thread);
+    } while(new_task != old_task);
+
+    // if no runnable thread found, switch to idle thread
+    return kernel_idle_thread;
 }
 
 void preempt_int()
 {
     struct thread *old_thread = current_thread;
-    struct task *old_task = current_task;
+    current_thread = schedule();
+    current_task = current_thread->task;
+    printk("switching to thread %d\n", current_thread->tid);
+    printk("stack to %lx\n", current_thread->rsp);
+    switch_environment(old_thread, current_thread);
+    switch_task_int(&old_thread->rsp, current_thread->rsp);
+}
 
-    // find next runnable thread
-    do {
-        LIST_NEXT(current_task);
-        struct thread *first_thread = current_task->threads;
-
-        do {
-            LIST_NEXT(current_task->threads);
-            if (current_task->threads->state == THREAD_RUNNING) {
-                current_thread = current_task->threads;
-                switch_context(old_thread, current_thread);
-                return;
-            }
-
-        } while(current_task->threads != first_thread);
-    } while(current_task != old_task);
-
-    // if no runnable thread found, switch to idle thread
-    current_task = &kernel_task;
-    current_thread = kernel_idle_thread;
-    switch_context(old_thread, current_thread);
+void preempt_syscall()
+{
+    struct thread *old_thread = current_thread;
+    current_thread = schedule();
+    current_task = current_thread->task;
+    printk("switching to thread %d\n", current_thread->tid);
+    printk("stack to %lx\n", current_thread->rsp);
+    switch_environment(old_thread, current_thread);
+    switch_task_sys(&old_thread->rsp, current_thread->rsp);
 }
 
 pid_t get_current_task_pid()

@@ -8,10 +8,10 @@
 #define TSS_AVAILABLE 9;
 #define TSS_BUSY 11;
 
-#define CODE_SEGMENT 0x08
-#define DATA_SEGMENT 0x10
-#define USER_CODE_SEGMENT 0x1b
-#define USER_DATA_SEGMENT 0x23
+#define CODE_SEGMENT 0x08ULL
+#define DATA_SEGMENT 0x10ULL
+#define USER_CODE_SEGMENT 0x1bULL
+#define USER_DATA_SEGMENT 0x23ULL
 
 typedef uint64_t pid_t;
 

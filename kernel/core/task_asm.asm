@@ -73,6 +73,8 @@ usermode_function:
     mov rax, 2
     int 0x30
     .over
+    xchg bx, bx
+    syscall
     xor rax, rax
     int 0x30
     jmp .over

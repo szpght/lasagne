@@ -15,6 +15,8 @@ static struct thread *kernel_idle_thread;
 
 static struct task *current_task;
 static struct thread *current_thread;
+uintptr_t kernel_stack;
+uintptr_t user_stack;
 
 static pid_t next_pid = 1;
 static pid_t next_tid = 1;
@@ -210,6 +212,7 @@ void preempt_int()
             LIST_NEXT(current_task->threads);
             if (current_task->threads->state == THREAD_RUNNING) {
                 current_thread = current_task->threads;
+                kernel_stack = current_thread->stack_top;
                 switch_context(old_thread, current_thread);
                 return;
             }
@@ -220,6 +223,7 @@ void preempt_int()
     // if no runnable thread found, switch to idle thread
     current_task = &kernel_task;
     current_thread = kernel_idle_thread;
+    kernel_stack = current_thread->stack_top;
     switch_context(old_thread, current_thread);
 }
 

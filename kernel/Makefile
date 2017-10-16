@@ -18,6 +18,7 @@ OBJS             =              \
 	core/printk.o               \
 	core/task_asm.o             \
 	core/syscall.o              \
+	core/syscall_asm.o          \
 	libc/string.o               \
 	libc/string_asm.o           \
 	mm/frame.o                  \

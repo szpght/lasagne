@@ -4,6 +4,12 @@
 #include <printk.h>
 #include <task.h>
 #include <assert.h>
+#include <io/io.h>
+
+#define IA32_EFER 0xC0000080
+#define IA32_LSTAR 0xc0000082
+#define IA32_FMASK 0xc0000084
+#define IA32_STAR 0xc0000081
 
 static void syscall_int_handler(struct irq_state *registers);
 
@@ -27,10 +33,30 @@ static void *syscall_table[] =
 static const int syscall_count =
     sizeof(syscall_table)/sizeof(*syscall_table);
 
-__init void initialize_syscalls()
+__init static void initialize_int_handler()
 {
     set_irq_handler(SYSCALL_INT, syscall_int_handler,
         INT_HANDLER_RETVAL | INT_HANDLER_USER);
+}
+
+__init static void initialize_fast_handler()
+{
+    uint64_t star = rdmsr(IA32_STAR);
+    star &= 0xFFFFFFFFULL;
+    star |= CODE_SEGMENT << 32;
+    star |= USER_CODE_SEGMENT << 48;
+    wrmsr(IA32_STAR, star);
+    wrmsr(IA32_LSTAR, (uint64_t) syscall_fast_handler);
+    wrmsr(IA32_FMASK, RFLAGS_IF);
+    uint64_t efer = rdmsr(IA32_EFER);
+    efer |= 1;
+    wrmsr(IA32_EFER, efer);
+}
+
+__init void initialize_syscalls()
+{
+    initialize_int_handler();
+    initialize_fast_handler();
 }
 
 void syscall_int_handler(struct irq_state *registers)

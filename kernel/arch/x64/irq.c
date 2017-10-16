@@ -1,5 +1,5 @@
 #include <irq.h>
-#include <io/ports.h>
+#include <io/io.h>
 #include <mm/alloc.h>
 #include <mm/memory_map.h>
 #include <printk.h>

@@ -1,7 +1,7 @@
 #include <types.h>
 #include <mm/memory_map.h>
 #include <io/tty.h>
-#include <io/ports.h>
+#include <io/io.h>
 #include <string.h>
 
 static struct {

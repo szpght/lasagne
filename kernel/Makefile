@@ -13,7 +13,7 @@ OBJS             =              \
 	arch/x64/multiboot.o        \
 	arch/x64/io/tty.o           \
 	arch/x64/io/pit.o           \
-	arch/x64/io/ports.o         \
+	arch/x64/io/io.o            \
 	core/assert.o               \
 	core/printk.o               \
 	core/task_asm.o             \

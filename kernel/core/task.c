@@ -6,6 +6,7 @@
 #include <printk.h>
 #include <ds.h>
 #include <irq.h>
+#include <io/io.h>
 
 struct tss tss;
 
@@ -179,7 +180,7 @@ void create_usermode_task()
     }
 }
 
-void set_current_kernel_stack(void *stack)
+void set_current_kernel_stack(uintptr_t stack)
 {
     tss.rsp0 = stack;
 }
@@ -190,6 +191,8 @@ static void switch_context(struct thread *old_thread, struct thread *new_thread)
         return;
     }
 
+    wrmsr(IA32_GS_BASE, (uint64_t) &new_thread->rsp);
+    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t) &new_thread->stack_top);
     uintptr_t memory = new_thread->task->memory;
     if (memory) {
         set_address_space(memory);

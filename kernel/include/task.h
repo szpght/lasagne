@@ -19,11 +19,11 @@ extern struct tss_descriptor tss_descriptor;
 
 struct tss {
     uint32_t reserved;
-    uint64_t* rsp0;
-    uint64_t* rsp1;
-    uint64_t* rsp2;
+    uint64_t rsp0;
+    uint64_t rsp1;
+    uint64_t rsp2;
     uint64_t reserved2;
-    uint64_t* ist[7];
+    uint64_t ist[7];
     uint64_t reserved3;
     uint16_t reserved4;
     uint16_t iomap_base_addr;
@@ -54,7 +54,7 @@ struct thread {
     pid_t tid;
     enum thread_state state;
     uint64_t *rsp;
-    uint64_t *stack_top;
+    uintptr_t stack_top;
     struct task *task;
     struct thread *next;
     struct thread *prev;

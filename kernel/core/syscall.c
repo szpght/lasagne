@@ -6,11 +6,6 @@
 #include <assert.h>
 #include <io/io.h>
 
-#define IA32_EFER 0xC0000080
-#define IA32_LSTAR 0xc0000082
-#define IA32_FMASK 0xc0000084
-#define IA32_STAR 0xc0000081
-
 static void syscall_int_handler(struct irq_state *registers);
 
 void sys_yield()

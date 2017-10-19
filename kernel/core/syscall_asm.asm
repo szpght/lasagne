@@ -1,33 +1,19 @@
-extern user_stack
-extern kernel_stack
-
 global syscall_fast_handler
-syscall_fast_handler:
-    xchg bx, bx
+syscall_fast_handler:    
+    ; swapgs
+    ; mov qword [gs:0], rsp
+    ; mov rsp, qword [gs:8]
+
+    ; push rcx
+    ; push r11
+
+    ; pop r11
+    ; pop rcx
     
-    mov qword [gs:0], rsp
-    swapgs
-    mov rsp, qword [gs:0]
+    ; mov rsp, qword [gs:0]
+    ; swapgs
 
-    push rcx
-    push r11
-
-    push rax
-    pop rax    
-    mov eax, 3
-    int 0x30
-
-    mov rdi, .hehe
-    extern printk
-    call printk
-    xchg bx, bx
-    
-    pop r11
-    pop rcx
-    
-    swapgs
-    mov rsp, qword [gs:0]
-
+    ; xchg bx, bx
     sysret
 
     .hehe: db 'hehe', 10, 0

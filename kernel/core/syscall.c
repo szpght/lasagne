@@ -34,7 +34,7 @@ __init static void initialize_int_handler()
         INT_HANDLER_RETVAL | INT_HANDLER_USER);
 }
 
-__init static void initialize_fast_handler()
+__init void initialize_fast_handler()
 {
     uint64_t star = rdmsr(IA32_STAR);
     star &= 0xFFFFFFFFULL;

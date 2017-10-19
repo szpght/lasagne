@@ -67,11 +67,6 @@ switch_task_int:
 
 global usermode_function
 usermode_function:
-    mov rax, 1
-    mov rdi, .text_to_print
-    int 0x30
-    mov rax, 2
-    int 0x30
     .over
     xchg bx, bx
     syscall

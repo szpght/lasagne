@@ -191,8 +191,7 @@ static void switch_context(struct thread *old_thread, struct thread *new_thread)
         return;
     }
 
-    wrmsr(IA32_GS_BASE, (uint64_t) &new_thread->rsp);
-    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t) &new_thread->stack_top);
+    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t) new_thread);
     uintptr_t memory = new_thread->task->memory;
     if (memory) {
         set_address_space(memory);

@@ -142,9 +142,85 @@ void reset_irq_handler(int irq_number)
     idt[irq_number].present = 0;
 }
 
+static void print_selector_error(uint64_t error_code)
+{
+    int external = error_code & 1;
+    int type = (error_code >> 1) & 3;
+    int selector_index = error_code >> 3;
+    const char *typestring;
+    if (type == 0) {
+        typestring = "GDT";
+    }
+    else if (type == 1 || type == 3) {
+        typestring = "IDT";
+    }
+    else {
+        typestring = "LDT";
+    }
+
+    if (external) {
+        printk("external ");
+    }
+
+    printk("%s selector index %x\n", typestring, selector_index);
+}
+
+static void print_page_fault_error(uint64_t error_code)
+{
+    if (error_code & (1 << 0)) {
+        printk("present ");
+    }
+    else {
+        printk("non-present ");
+    }
+
+    if (error_code & (1 << 2)) {
+        printk("usermode ");
+    }
+    else {
+        printk("kernel ");
+    }
+    
+    if (error_code & (1 << 1)) {
+        printk("write ");
+    }
+    else if (error_code & (1 << 4)) {
+        printk("instruction fetch ");
+    }
+    else {
+        printk("read ");
+    }
+
+    if (error_code & (1 << 3)) {
+        printk("(reserved field set to 1)");
+    }
+
+    printk("\n");
+}
+
+static void print_error_code_interpretation(int interrupt, uint64_t error_code)
+{
+    switch(interrupt) {
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+            print_selector_error(error_code);
+            break;
+        case 14:
+            print_page_fault_error(error_code);
+            break;
+        case 17:
+            if (error_code & 1) {
+                printk("external");
+            }
+            break;
+    }
+}
+
 void generic_exception_handler(struct irq_state *regs, uint64_t error_code)
 {
-    static char *exception_name[31] = {
+    static const char * const exception_name[31] = {
         "Divide-by-zero Error",
         "Debug",
         "Non-maskable Interrupt",
@@ -178,13 +254,40 @@ void generic_exception_handler(struct irq_state *regs, uint64_t error_code)
         "Security Exception"
     };
 
+    static const char * const flag_name[] = {
+        "cf", "CF",
+        NULL, NULL,
+        "pf", "PF",
+        NULL, NULL,
+        "af", "AF",
+        NULL, NULL,
+        "zf", "ZF",
+        "sf", "SF",
+        "tf", "TF",
+        "if", "IF",
+        "df", "DF",
+        "of", "OF",
+        NULL, NULL,
+        NULL, NULL,
+        "nt", "NT",
+        NULL, NULL,
+        "rf", "RF",
+        "vm", "VM",
+        "ac", "AC",
+        "vif", "VIF",
+        "vip", "VIP",
+        "id", "ID"
+    };
+
     disable_irq();
     void *irq_stack_frame = &(regs->irq_stack_frame);
     printk("Exception #%ld occured: %s\n", regs->irq, exception_name[regs->irq]);
     if (idt_handler[regs->irq].flags & INT_HANDLER_ERRORCODE) {
         printk("Error code %lx\n", error_code);
+        print_error_code_interpretation(regs->irq, error_code);
         irq_stack_frame += 8;
     }
+
     struct irq_stack_frame *irq_frame = irq_stack_frame;
     printk("RAX = %lx    RBX = %lx    RCX = %lx\n", regs->rax, regs->rbx, regs->rcx);
     printk("RDX = %lx    RSI = %lx    RDI = %lx\n", regs->rdx, regs->rsi, regs->rdi);
@@ -193,8 +296,27 @@ void generic_exception_handler(struct irq_state *regs, uint64_t error_code)
     printk("R13 = %lx    R14 = %lx    R15 = %lx\n", regs->r13, regs->r14, regs->r15);
     printk("RIP = %lx     CS = %lx\n", irq_frame->rip, irq_frame->cs);
     printk("RSP = %lx     SS = %lx\n", irq_frame->rsp, irq_frame->ss);
-    printk("RFLAGS = %lx\n", irq_frame->rflags);
-    printk("CR2 = %lx\n", get_cr2());
+    printk("RFLAGS: ");
+
+    const int max_rflags_bit = 21;
+    for (int i = max_rflags_bit; i >= 0; --i) {
+        int index = 2 * i;
+        if (irq_frame->rflags & (1ULL << i)) {
+            index += 1;
+        }
+
+        if (i == 12) {
+            int iopl = irq_frame->rflags >> 12;
+            iopl &= 3;
+            printk("IOPL=%d ", iopl);
+        }
+
+        if (flag_name[index]) {
+            printk("%s ", flag_name[index]);
+        }
+    }
+
+    printk("\nCR2 = %lx\n", get_cr2());
     printk("System halted\n");
 
     for(;;) {

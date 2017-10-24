@@ -2,11 +2,18 @@ extern bad_syscall
 extern syscall_count
 extern syscall_table
 
+thr_user_rsp            equ 0
+thr_stack_top           equ 8
+thr_syscall_type        equ 16
+SYSCALL_BY_INTERRUPT    equ 0
+SYSCALL_BY_SYSCALL      equ 1
+
 global syscall_fast_handler
 syscall_fast_handler:
     swapgs
-    mov qword [gs:0], rsp
-    mov rsp, qword [gs:8]
+    mov qword [gs:thr_user_rsp], rsp
+    mov rsp, qword [gs:thr_stack_top]
+    mov qword [gs:thr_syscall_type], SYSCALL_BY_SYSCALL
     swapgs
 
     push rcx

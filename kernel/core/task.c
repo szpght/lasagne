@@ -9,13 +9,13 @@
 #include <io/io.h>
 
 struct tss tss;
+struct thread *current_thread;
 
 static struct task kernel_task;
 static struct thread kernel_main_thread;
 static struct thread *kernel_idle_thread;
 
 static struct task *current_task;
-static struct thread *current_thread;
 
 static pid_t next_pid = 1;
 static pid_t next_tid = 1;
@@ -77,8 +77,8 @@ __init void initialize_tasks()
     init_kernel_task();
     current_thread = kernel_task.main_thread;
     create_kernel_thread(&kernel_task, do_sth);
-    create_usermode_task();
-    create_usermode_task();
+    create_usermode_task(1);
+    create_usermode_task(0);
 }
 
 static struct thread *create_thread(struct task *task, void *main,
@@ -154,13 +154,20 @@ struct thread *create_usermode_thread(struct task *task, void *main, uint64_t st
 }
 
 extern void usermode_function();
+extern void usermode_function2();
 
-void create_usermode_task()
+void create_usermode_task(int xd)
 {
     new_address_space();
     void *virtual_memory_start = (void*) (1024 * 1024);
     map_range(virtual_memory_start, 4096, MAP_RW | MAP_EXE | MAP_USER);
-    memcpy(virtual_memory_start, usermode_function, 100);
+    if (xd) {
+        memcpy(virtual_memory_start, usermode_function, 1000);
+    }
+    else {
+        memcpy(virtual_memory_start, usermode_function2, 1000);
+    }
+    
 
     void *stack = (void*) (2 * 1024 * 1024);
     map_range(stack, 4096, MAP_RW | MAP_EXE | MAP_USER);
@@ -231,8 +238,6 @@ void preempt_int()
     struct thread *old_thread = current_thread;
     current_thread = schedule();
     current_task = current_thread->task;
-    printk("switching to thread %d\n", current_thread->tid);
-    printk("stack to %lx\n", current_thread->rsp);
     switch_environment(old_thread, current_thread);
     switch_task_int(&old_thread->rsp, current_thread->rsp);
 }
@@ -242,8 +247,6 @@ void preempt_syscall()
     struct thread *old_thread = current_thread;
     current_thread = schedule();
     current_task = current_thread->task;
-    printk("switching to thread %d\n", current_thread->tid);
-    printk("stack to %lx\n", current_thread->rsp);
     switch_environment(old_thread, current_thread);
     switch_task_sys(&old_thread->rsp, current_thread->rsp);
 }

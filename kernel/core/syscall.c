@@ -10,7 +10,15 @@ static void syscall_int_handler(struct irq_state *registers);
 
 void sys_yield()
 {
-    preempt_syscall();
+    if (current_thread->syscall_type == SYSCALL_BY_INTERRUPT) {
+        preempt_int();
+    }
+    else if (current_thread->syscall_type == SYSCALL_BY_SYSCALL) {
+        preempt_syscall();
+    }
+    else {
+        assert(!"incorrect current_task->syscall_type value");
+    }
 }
 
 void sys_printk(char *template, uint64_t arg1, uint64_t arg2,
@@ -66,6 +74,7 @@ void syscall_int_handler(struct irq_state *registers)
         bad_syscall(syscall_number);
         return;
     }
+    current_thread->syscall_type = SYSCALL_BY_INTERRUPT;
     uint64_t (*handler)(uint64_t, uint64_t, uint64_t) = syscall_table[syscall_number];
     uint64_t result = handler(registers->rdi, registers->rsi,
         registers->rdx);

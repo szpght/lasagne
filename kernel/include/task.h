@@ -1,6 +1,7 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
+#include <syscall.h>
 
 #define RFLAGS_IF (1 << 9)
 #define DEFAULT_STACK_SIZE 8192
@@ -16,6 +17,7 @@
 typedef uint64_t pid_t;
 
 extern struct tss_descriptor tss_descriptor;
+extern struct thread *current_thread;
 
 struct tss {
     uint32_t reserved;
@@ -53,6 +55,9 @@ enum thread_state {
 struct thread {
     uintptr_t user_rsp;
     uintptr_t stack_top;
+    // contains 1 after 'syscall' instruction triggered syscall
+    // used by syscall dispatcher to call correct preempt_* function
+    syscall_type_t syscall_type;
     pid_t tid;
     uint64_t *rsp;
     enum thread_state state;

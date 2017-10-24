@@ -69,6 +69,31 @@ usermode_function:
     .text2:
     db 'counter %d', 10, 0
 
+global usermode_function2
+usermode_function2:
+    mov rax, 1
+    mov rdi, .text_to_print
+    syscall
+
+    mov rax, 2
+    syscall
+
+    mov r12, 0x1000;
+    .over:
+    mov rdi, .text2
+    mov rsi, r12
+    mov rax, 1
+    syscall
+
+    xor rax, rax
+    int 0x30
+    inc r12
+    jmp .over
+    .text_to_print:
+    db 'Hello from user mode', 10, 0
+    .text2:
+    db 'counter %d', 10, 0
+
 global idle_thread
 idle_thread:
     hlt

@@ -88,7 +88,7 @@ static struct thread *create_thread(struct task *task, void *main,
 
     void* stack = kalloc(DEFAULT_STACK_SIZE);
     thread->rsp = (stack + DEFAULT_STACK_SIZE);
-    thread->stack_top = (stack + DEFAULT_STACK_SIZE);
+    thread->stack_top = (uintptr_t)(stack + DEFAULT_STACK_SIZE);
     *(--thread->rsp) = ss;
     if (!usermode_stack) {
         *(--thread->rsp) = (uint64_t) stack + DEFAULT_STACK_SIZE; // rsp
@@ -160,7 +160,7 @@ void create_usermode_task(int xd)
 {
     new_address_space();
     void *virtual_memory_start = (void*) (1024 * 1024);
-    map_range(virtual_memory_start, 4096, MAP_RW | MAP_EXE | MAP_USER);
+    map_range((uintptr_t)virtual_memory_start, 4096, MAP_RW | MAP_EXE | MAP_USER);
     if (xd) {
         memcpy(virtual_memory_start, usermode_function, 1000);
     }
@@ -169,7 +169,7 @@ void create_usermode_task(int xd)
     }
     
 
-    void *stack = (void*) (2 * 1024 * 1024);
+    uintptr_t stack = 2 * 1024 * 1024;
     map_range(stack, 4096, MAP_RW | MAP_EXE | MAP_USER);
 
     struct task *task = kalloc(sizeof(*task));
@@ -211,7 +211,6 @@ static void switch_environment(struct thread *old_thread, struct thread *new_thr
 
 static struct thread *schedule()
 {
-    struct thread *old_thread = current_thread;
     struct task *old_task = current_task;
     struct task *new_task = current_task;
 

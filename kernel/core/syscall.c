@@ -33,7 +33,7 @@ void *syscall_table[] =
     sys_printk
 };
 
-const int syscall_count =
+const unsigned int syscall_count =
     sizeof(syscall_table)/sizeof(*syscall_table);
 
 __init static void initialize_int_handler()

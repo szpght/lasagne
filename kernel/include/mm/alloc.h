@@ -6,5 +6,7 @@
 
 void initialize_kernel_heap();
 void *kalloc(size_t size);
+void *krealloc(void* ptr, size_t size);
 void kfree(void *ptr);
 void *kzalloc(size_t size);
+void print_heap_status();

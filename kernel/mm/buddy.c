@@ -1,9 +1,9 @@
 #include <mm/buddy.h>
 #include <stdbool.h>
 #include <printk.h>
+#include <util/math.h>
+#include <util/bitmap.h>
 
-#define log2(number) __builtin_ctzl(number)
-static long round_power_of_2(long number);
 static void flip_bit(uint8_t *buffer, int bit);
 static uint8_t get_bit(uint8_t *buffer, int bit);
 static void set_bit(uint8_t *buffer, int bit);
@@ -71,7 +71,7 @@ size_t allocator_bitmaps_size(size_t memory_size, size_t leaf_size)
 
 void *allocator_allocate(struct allocator *alloc, size_t size)
 {
-    size = round_power_of_2(size);
+    size = ceil_to_power_of_two(size);
     // sanity checks
     if (size > alloc->free_size) {
         return ALLOCATOR_EMPTY;
@@ -197,7 +197,7 @@ static void remove_from_list(struct allocator *alloc, struct allocator_node *blo
 
 void allocator_deallocate_fast(struct allocator *alloc, void *block, size_t size)
 {
-    size = round_power_of_2(size);
+    size = ceil_to_power_of_two(size);
     int level = level_from_size(alloc, size);
     allocator_deallocate_level(alloc, block, level);
 }
@@ -239,6 +239,12 @@ void allocator_deallocate(struct allocator *alloc, void *block)
     size_t size = alloc->leaf_size;
     size *= 1 << (alloc->max_level - level);
     allocator_deallocate_fast(alloc, block, size);
+}
+
+size_t allocator_allocation_size(struct allocator *alloc, void *block)
+{
+    int level = allocation_level(alloc, block);
+    return size_from_level(alloc, level);
 }
 
 static int allocation_level(struct allocator *alloc, void *block)
@@ -290,44 +296,4 @@ static int level_from_size(struct allocator *alloc, size_t size)
 static size_t size_from_level(struct allocator *alloc, int level)
 {
     return alloc->size >> level;
-}
-
-///////// utils
-
-static void flip_bit(uint8_t *buffer, int bit)
-{
-    int index = bit / 8;
-    int offset = bit % 8;
-    buffer[index] ^= (1 << offset);
-}
-
-static uint8_t get_bit(uint8_t *buffer, int bit)
-{
-    int index = bit / 8;
-    int offset = bit % 8;
-    return (buffer[index] >> (offset)) & 1;
-}
-
-static void set_bit(uint8_t *buffer, int bit)
-{
-    int index = bit / 8;
-    int offset = bit % 8;
-    buffer[index] |= (1 << offset);
-}
-
-static void reset_bit(uint8_t *buffer, int bit)
-{
-    int index = bit / 8;
-    int offset = bit % 8;
-    buffer[index] &= ~(1 << offset);
-}
-
-static long round_power_of_2(long number)
-{
-    int a = __builtin_ctzl(number);
-    int b = 63 - __builtin_clzl(number);
-    if (a != b) {
-        b += 1;
-    }
-    return 1 << b;
 }

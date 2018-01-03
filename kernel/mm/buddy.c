@@ -234,11 +234,8 @@ void allocator_deallocate_level(struct allocator *alloc, void *block, int level)
 
 void allocator_deallocate(struct allocator *alloc, void *block)
 {
-    // get size of allocation
     int level = allocation_level(alloc, block);
-    size_t size = alloc->leaf_size;
-    size *= 1 << (alloc->max_level - level);
-    allocator_deallocate_fast(alloc, block, size);
+    allocator_deallocate_level(alloc, block, level);
 }
 
 size_t allocator_allocation_size(struct allocator *alloc, void *block)

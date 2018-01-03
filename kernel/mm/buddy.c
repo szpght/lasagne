@@ -204,6 +204,7 @@ void allocator_deallocate_fast(struct allocator *alloc, void *block, size_t size
 
 void allocator_deallocate_level(struct allocator *alloc, void *block, int level)
 {
+    alloc->free_size += size_from_level(alloc, level);
     struct allocator_node *base_addr = block;
     do {
         flip_allocation_bit(alloc, base_addr, level);
@@ -221,7 +222,6 @@ void allocator_deallocate_level(struct allocator *alloc, void *block, int level)
     } while (level > 0);
 
     end:
-    alloc->free_size += size_from_level(alloc, level);
     // add new free block to list
     if (not_empty(alloc->free_blocks[level])) {
         alloc->free_blocks[level]->prev = base_addr;

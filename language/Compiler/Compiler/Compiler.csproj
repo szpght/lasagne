@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <Antlr4UseCSharpGenerator>True</Antlr4UseCSharpGenerator>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Antlr4">
+      <Version>4.6.5-beta002</Version>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Antlr4 Include="**/*.g4">
+      <Visitor>true</Visitor>
+    </Antlr4>
+  </ItemGroup>
+
+
+</Project>

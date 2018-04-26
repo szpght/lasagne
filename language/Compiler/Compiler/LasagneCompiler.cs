@@ -9,7 +9,9 @@ namespace Compiler
         public void Compile()
         {
             Console.WriteLine("Compiling");
-            var text = "def hello () { question = 1 answer = 42 }";
+            var text = "enum FullEnum {value1 value2} enum EmptyEnum {} def hello () { question = 1 answer = 42 }";
+            text += "struct EmptyStruct {} struct StructFullOfGood {var1: type1 var2: type2}";
+            text += "impl { pub def hello () {} def helloImpl(){ question = 1 answer = 42 }";
             var input = new AntlrInputStream(text);
             var lexer = new LasagneLexer(input);
             var commonTokenStream = new CommonTokenStream(lexer);

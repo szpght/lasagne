@@ -1,38 +1,93 @@
 ﻿grammar Lasagne;
 
 
+program
+    :   topLevelStatement* EOF
+    ;
 
-program : topLevelStatement* EOF;
+topLevelStatement
+    : functionBlock
+    | enumBlock
+    | structBlock
+    | implementationBlock
+    ;
 
-topLevelStatement : functionBlock;
+enumBlock
+    : Enum identifier OpenBrace enumOptions CloseBrace
+    ;
 
-functionBlock : Def name paramList block;
+enumOptions
+    : identifier*
+    ;
 
-block : OpenBrace statement* CloseBrace;
+structBlock
+    : Struct identifier OpenBrace structMembers CloseBrace
+    ;
 
-statement : assignStatement;
+structMembers
+    : structMember*
+    ;
 
-assignStatement : lvalue AssignOperator rvalue;
+structMember
+    : identifier Colon type
+    ;
 
-rvalue : name | literal;
-lvalue : name;
+implementationBlock
+    : OpenBrace methodDefinition* CloseBrace
+    ;
 
-literal : IntLiteral;
+methodDefinition
+    : Pub? functionBlock
+    ;
 
-paramList : OpenParen 
-    paramDecls
-    CloseParen;
+functionBlock
+    : Def identifier paramList block
+    ;
 
-paramDecls : (name Colon type (Comma paramDecls)*)?;
+block
+    : OpenBrace statement* CloseBrace
+    ;
 
-type : name;
+statement
+    : assignStatement
+    ;
+
+assignStatement
+    : lvalue AssignOperator rvalue
+    ;
+
+rvalue
+    : identifier
+    | literal
+    ;
+
+lvalue
+    : identifier
+    ;
+
+literal
+    : IntLiteral
+    ;
+
+paramList
+    : OpenParen paramDecls CloseParen
+    ;
+
+paramDecls
+    : (identifier Colon type (Comma paramDecls)*)?
+    ;
+
+type
+    : identifier
+    ;
+
+identifier
+    : Identifier
+    ;
 
 Def: 'def';
-
-name : ID;
-
-
-
+Enum : 'enum';
+Pub : 'pub';
 AssignOperator : '=';
 IntLiteral : ('0'..'9')+;
 Colon : ':';
@@ -41,5 +96,6 @@ CloseBrace: '}';
 OpenParen : '(';
 CloseParen : ')';
 Comma: ',';
-ID : [a-zA-Z] [a-zA-Z0-9]*;
+Struct: 'struct';
+Identifier : [a-zA-Z_] [a-zA-Z0-9_]*;
 WS : [ \t\r\n]+ -> skip ;

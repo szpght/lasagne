@@ -16,7 +16,6 @@ namespace Compiler
             var lexer = new LasagneLexer(input);
             var commonTokenStream = new CommonTokenStream(lexer);
             var parser = new LasagneParser(commonTokenStream);
-            var visitor = new LasagneBaseVisitor<string>();
             var tree = parser.program();
             var ctx = tree.ToStringTree(parser);
             Console.WriteLine(FormatSexp(ctx));

@@ -41,10 +41,10 @@ methodDefinition
     ;
 
 functionBlock
-    : Def identifier paramList block
+    : Def identifier paramList codeBlock
     ;
 
-block
+codeBlock
     : OpenBrace statement* CloseBrace
     ;
 
@@ -63,10 +63,24 @@ rvalue
 
 lvalue
     : identifier
+    | variableInlineDeclaration
     ;
 
 literal
     : IntLiteral
+    ;
+
+variableInlineDeclaration
+    : immutableVariableDeclaration
+    | mutableVariableDeclaration
+    ;
+
+immutableVariableDeclaration
+    : Let identifier
+    ;
+
+mutableVariableDeclaration
+    : Var identifier
     ;
 
 paramList
@@ -88,6 +102,8 @@ identifier
 Def: 'def';
 Enum : 'enum';
 Pub : 'pub';
+Let : 'let';
+Var : 'var';
 AssignOperator : '=';
 IntLiteral : ('0'..'9')+;
 Colon : ':';

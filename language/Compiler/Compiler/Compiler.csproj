@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <Antlr4 Include="**/*.g4">
-      <Visitor>false</Visitor>
+      <Visitor>true</Visitor>
     </Antlr4>
   </ItemGroup>
 

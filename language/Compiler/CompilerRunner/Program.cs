@@ -1,6 +1,6 @@
-﻿using Compiler;
+﻿using Lasagne.Compiler;
 
-namespace CompilerRunner
+namespace Lasagne.CompilerRunner
 {
     class Program
     {

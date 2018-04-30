@@ -2,7 +2,7 @@
 
 
 program
-    :   topLevelStatement* EOF
+    : topLevelStatement* EOF
     ;
 
 topLevelStatement
@@ -13,11 +13,12 @@ topLevelStatement
     ;
 
 enumBlock
-    : Enum identifier OpenBrace enumOptions CloseBrace
+    : Enum identifier OpenBrace enumOption* CloseBrace
     ;
 
-enumOptions
-    : identifier*
+enumOption
+    : identifier
+    | identifier Colon IntLiteral
     ;
 
 structBlock
@@ -33,7 +34,7 @@ structMember
     ;
 
 implementationBlock
-    : OpenBrace methodDefinition* CloseBrace
+    : Impl identifier OpenBrace methodDefinition* CloseBrace
     ;
 
 methodDefinition
@@ -101,8 +102,9 @@ identifier
 
 Def: 'def';
 Enum : 'enum';
-Pub : 'pub';
+Impl: 'impl';
 Let : 'let';
+Pub : 'pub';
 Var : 'var';
 AssignOperator : '=';
 IntLiteral : ('0'..'9')+;

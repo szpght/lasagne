@@ -34,11 +34,7 @@ typedParameter
     ;
 
 implementationBlock
-    : Impl identifier OpenBrace methodDefinition* CloseBrace
-    ;
-
-methodDefinition
-    : Pub? functionBlock
+    : Impl identifier OpenBrace functionBlock* CloseBrace
     ;
 
 functionBlock
@@ -46,7 +42,7 @@ functionBlock
     ;
 
 functionSignature
-    : identifier OpenParen paramDecls CloseParen (Colon type)
+    : Pub? identifier OpenParen paramDecls CloseParen (Colon type)
     ;
 
 paramDecls

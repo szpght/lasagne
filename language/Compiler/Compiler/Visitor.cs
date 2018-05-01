@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Antlr4.Runtime.Tree;
 using Lasagne.Compiler.Ast;
@@ -86,6 +85,11 @@ namespace Lasagne.Compiler
                 node.ReturnedType = (TypeNode) Visit(type);
             }
 
+            if (context.Pub() != null)
+            {
+                node.IsPublic = true;
+            }
+
             var parameters = VisitMany<TypedParameter>(context.paramDecls().typedParameter());
             node.AddParameters(parameters);
             return node;
@@ -106,21 +110,29 @@ namespace Lasagne.Compiler
             return node;
         }
 
+        public override Node VisitImplementationBlock(LasagneParser.ImplementationBlockContext context)
+        {
+            var node = _nodeBuilder.Build<Implementation>(context);
+            node.Name = context.identifier().GetText();
+            var methods = VisitMany<Function>(context.functionBlock());
+            node.AddMethods(methods);
+            return node;
+        }
+
         private IEnumerable<Node> VisitMany(IEnumerable<IParseTree> tree)
         {
-            if (tree is null)
-            {
-                return new List<Node>();
-            }
-
-            return tree.Select(Visit)
-                .ToList();
+            return VisitMany<Node>(tree);
         }
 
         private IEnumerable<T> VisitMany<T>(IEnumerable<IParseTree> tree) where T: Node
         {
-            var results = VisitMany(tree);
-            return results.Select(s => (T) s).ToList();
+            if (tree is null)
+            {
+                return new List<T>();
+            }
+
+            return tree.Select(leaf => (T) Visit(leaf))
+                .ToList();
         }
     }
 }

@@ -10,7 +10,8 @@ namespace Lasagne.Compiler
         public void Compile()
         {
             Console.WriteLine("Compiling");
-            var text = "enum FullEnum {value1 value2: 42} enum EmptyEnum {} def hello () { question = 1 answer = 42 }";
+            var text = "enum FullEnum {value1 value2: 42} enum EmptyEnum {}";
+            text += " def hello (arg1: type1, arg2: type2): type3 { question = 1 answer = 42 }";
             text += "struct EmptyStruct {} struct StructFullOfGood {var1: type1 var2: type2}";
             text += "impl StructFullOfGood { pub def hello () {} def helloImpl(){ question = 1 answer = 42 }}";
             text += "def variableManipulations() { let constant = 1 var variable = 2 variable = constant }";

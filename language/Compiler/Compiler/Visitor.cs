@@ -60,11 +60,49 @@ namespace Lasagne.Compiler
             return node;
         }
 
-        public override Node VisitStructMember(LasagneParser.StructMemberContext context)
+        public override Node VisitTypedParameter(LasagneParser.TypedParameterContext context)
         {
-            var node = _nodeBuilder.Build<StructMember>(context);
+            var node = _nodeBuilder.Build<TypedParameter>(context);
             node.Name = context.identifier().GetText();
             node.Type = (TypeNode)Visit(context.type());
+            return node;
+        }
+
+        public override Node VisitFunctionBlock(LasagneParser.FunctionBlockContext context)
+        {
+            var node = _nodeBuilder.Build<Function>(context);
+            node.Signature = (FunctionSignature) Visit(context.functionSignature());
+            node.Body = (CodeBlock) Visit(context.codeBlock());
+            return node;
+        }
+
+        public override Node VisitFunctionSignature(LasagneParser.FunctionSignatureContext context)
+        {
+            var node = _nodeBuilder.Build<FunctionSignature>(context);
+            node.Name = context.identifier().GetText();
+            var type = context.type();
+            if (type != null)
+            {
+                node.ReturnedType = (TypeNode) Visit(type);
+            }
+
+            var parameters = VisitMany<TypedParameter>(context.paramDecls().typedParameter());
+            node.AddParameters(parameters);
+            return node;
+        }
+
+        public override Node VisitCodeBlock(LasagneParser.CodeBlockContext context)
+        {
+            var node = _nodeBuilder.Build<CodeBlock>(context);
+            var children = VisitMany(context.children);
+            node.AddChildren(children);
+            return node;
+        }
+
+        public override Node VisitType(LasagneParser.TypeContext context)
+        {
+            var node = _nodeBuilder.Build<TypeNode>(context);
+            node.Name = context.identifier().GetText();
             return node;
         }
 
@@ -77,6 +115,12 @@ namespace Lasagne.Compiler
 
             return tree.Select(Visit)
                 .ToList();
+        }
+
+        private IEnumerable<T> VisitMany<T>(IEnumerable<IParseTree> tree) where T: Node
+        {
+            var results = VisitMany(tree);
+            return results.Select(s => (T) s).ToList();
         }
     }
 }

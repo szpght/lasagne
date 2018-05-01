@@ -1,6 +1,6 @@
 ﻿namespace Lasagne.Compiler.Ast
 {
-    public class StructMember : Node
+    public class TypedParameter : Node
     {
         public string Name { get; set; }
         public TypeNode Type { get; set; }

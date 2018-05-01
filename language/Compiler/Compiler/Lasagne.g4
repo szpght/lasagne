@@ -26,10 +26,10 @@ structBlock
     ;
 
 structMembers
-    : structMember*
+    : typedParameter*
     ;
 
-structMember
+typedParameter
     : identifier Colon type
     ;
 
@@ -42,7 +42,15 @@ methodDefinition
     ;
 
 functionBlock
-    : Def identifier paramList codeBlock
+    : Def functionSignature codeBlock
+    ;
+
+functionSignature
+    : identifier OpenParen paramDecls CloseParen (Colon type)
+    ;
+
+paramDecls
+    : (typedParameter (Comma typedParameter)*)?
     ;
 
 codeBlock
@@ -82,14 +90,6 @@ immutableVariableDeclaration
 
 mutableVariableDeclaration
     : Var identifier
-    ;
-
-paramList
-    : OpenParen paramDecls CloseParen
-    ;
-
-paramDecls
-    : (identifier Colon type (Comma paramDecls)*)?
     ;
 
 type

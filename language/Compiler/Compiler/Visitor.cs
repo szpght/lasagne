@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Antlr4.Runtime.Tree;
 using Lasagne.Compiler.Ast;
 
@@ -16,17 +18,10 @@ namespace Lasagne.Compiler
         public override Node VisitProgram(LasagneParser.ProgramContext context)
         {
             var node = _nodeBuilder.Build<CompilationUnit>(context);
-            foreach (var child in context.children)
-            {
-                var subNode = Visit(child);
-                if (subNode is null)
-                {
-                    Console.WriteLine($"Warning: omitted unimplemented construct {child.GetChild(0)?.GetType().Name}");
-                    continue;
-                }
 
-                node.Children.Add(subNode);
-            }
+            var children = VisitMany(context.children);
+            children = children.Where(child => child != null);
+            node.AddChildren(children);
 
             return node;
         }
@@ -35,12 +30,8 @@ namespace Lasagne.Compiler
         {
             var node = _nodeBuilder.Build<EnumDeclaration>(context);
             node.Name = context.identifier().GetText();
-
-            foreach (var option in context.enumOption())
-            {
-                var value = Visit(option);
-                node.Children.Add(value);
-            }
+            var options = VisitMany(context.enumOption());
+            node.AddChildren(options);
 
             return node;
         }
@@ -56,6 +47,36 @@ namespace Lasagne.Compiler
             }
 
             return node;
+        }
+
+        public override Node VisitStructBlock(LasagneParser.StructBlockContext context)
+        {
+            var node = _nodeBuilder.Build<StructDeclaration>(context);
+            node.Name = context.identifier().GetText();
+
+            var members = VisitMany(context.structMembers().children);
+            node.AddChildren(members);
+
+            return node;
+        }
+
+        public override Node VisitStructMember(LasagneParser.StructMemberContext context)
+        {
+            var node = _nodeBuilder.Build<StructMember>(context);
+            node.Name = context.identifier().GetText();
+            node.Type = (TypeNode)Visit(context.type());
+            return node;
+        }
+
+        private IEnumerable<Node> VisitMany(IEnumerable<IParseTree> tree)
+        {
+            if (tree is null)
+            {
+                return new List<Node>();
+            }
+
+            return tree.Select(Visit)
+                .ToList();
         }
     }
 }

@@ -10,5 +10,10 @@ namespace Lasagne.Compiler.Ast
         public virtual int StartPosition { get; set; }
         public virtual int StopLine { get; set; }
         public virtual int StopPosition { get; set; }
+
+        public void AddChildren(IEnumerable<Node> nodes)
+        {
+            Children.AddRange(nodes);
+        }
     }
 }

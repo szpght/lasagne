@@ -50,42 +50,80 @@ paramDecls
     ;
 
 codeBlock
-    : OpenBrace statement* CloseBrace
+    : OpenBrace (statement Semicolon)* CloseBrace
     ;
 
 statement
-    : assignStatement
+    : assignment
+    | expression
     ;
 
-assignStatement
-    : lvalue AssignOperator rvalue
-    ;
-
-rvalue
-    : identifier
+expression
+    : OpenParen expression CloseParen
+    | expression multiplicationOperator expression
+    | expression additionOperator expression
+    | call
+    | identifier
     | literal
     ;
 
-lvalue
-    : identifier
-    | variableInlineDeclaration
+assignment
+    : valueAssignment
+    | valueDefinition
+    ;
+
+valueAssignment
+    : identifier AssignOperator expression
+    ;
+
+valueDefinition
+    : variableDefinition
+    | constantDefinition
+    ;
+
+variableDefinition
+    : Var valueAssignment
+    ;
+
+constantDefinition
+    : Let valueAssignment
     ;
 
 literal
+    : intLiteral
+    ;
+
+intLiteral
     : IntLiteral
     ;
 
-variableInlineDeclaration
-    : immutableVariableDeclaration
-    | mutableVariableDeclaration
+call
+    : callable OpenParen callArguments CloseParen
     ;
 
-immutableVariableDeclaration
-    : Let identifier
+callable
+    : identifier
+    | member
     ;
 
-mutableVariableDeclaration
-    : Var identifier
+member
+    : identifier Dot identifier
+    | member Dot identifier
+    ;
+
+callArguments
+    : (expression (Comma expression)*)?
+    ;
+
+multiplicationOperator
+    : Multiply
+    | Divide
+    | Modulo
+    ;
+
+additionOperator
+    : Plus
+    | Minus
     ;
 
 type
@@ -101,15 +139,22 @@ Enum : 'enum';
 Impl: 'impl';
 Let : 'let';
 Pub : 'pub';
+Struct : 'struct';
 Var : 'var';
 AssignOperator : '=';
+Plus : '+';
+Minus : '-';
+Multiply : '*';
+Divide : '/';
+Modulo : '%';
 IntLiteral : ('0'..'9')+;
 Colon : ':';
+Semicolon : ';';
 OpenBrace : '{';
 CloseBrace: '}';
 OpenParen : '(';
 CloseParen : ')';
-Comma: ',';
-Struct: 'struct';
+Comma : ',';
+Dot : '.';
 Identifier : [a-zA-Z_] [a-zA-Z0-9_]*;
 WS : [ \t\r\n]+ -> skip ;

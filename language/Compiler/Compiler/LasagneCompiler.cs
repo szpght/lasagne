@@ -15,7 +15,10 @@ namespace Lasagne.Compiler
             text += "struct EmptyStruct {} struct StructFullOfGood {var1: type1 var2: type2}";
             text += "impl StructFullOfGood { def pub hello () {} def helloImpl(){ question = 1 answer = 42 }}";
             text += "def pub variableManipulations() { let constant = 1 var variable = 2 variable = constant }";
-            var input = new AntlrInputStream(text);
+
+            var code = "def test() { let a = 5 + 5; var b = 2 + a * 3; function(a, b); another_function(a + b * no_args()); }";
+
+            var input = new AntlrInputStream(code);
             var lexer = new LasagneLexer(input);
             var commonTokenStream = new CommonTokenStream(lexer);
             var parser = new LasagneParser(commonTokenStream);

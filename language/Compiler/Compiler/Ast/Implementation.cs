@@ -2,7 +2,7 @@
 
 namespace Lasagne.Compiler.Ast
 {
-    public class Implementation : Node
+    public class Implementation : Node, INamedNode
     {
         public string Name { get; set; }
         public List<Function> Methods { get; } = new List<Function>();

@@ -1,6 +1,6 @@
 ﻿namespace Lasagne.Compiler.Ast
 {
-    public class EnumDeclaration : Node
+    public class EnumDeclaration : Node, INamedNode
     {
         public string Name { get; set; }
     }

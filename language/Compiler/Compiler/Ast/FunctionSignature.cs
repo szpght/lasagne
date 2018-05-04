@@ -2,7 +2,7 @@
 
 namespace Lasagne.Compiler.Ast
 {
-    public class FunctionSignature : Node
+    public class FunctionSignature : Node, INamedNode
     {
         public string Name { get; set; }
         public List<TypedParameter> Parameters { get; } = new List<TypedParameter>();

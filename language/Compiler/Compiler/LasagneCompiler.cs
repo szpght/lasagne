@@ -16,7 +16,8 @@ namespace Lasagne.Compiler
             text += "impl StructFullOfGood { def pub hello () {} def helloImpl(){ question = 1 answer = 42 }}";
             text += "def pub variableManipulations() { let constant = 1 var variable = 2 variable = constant }";
 
-            var code = "def test() { let a = 5 + 5; var b = 2 + a * 3; function(a, b); another_function(a + b * no_args()); }";
+            var code = "def test() { let a = (2); let a = 5 + 5; var b = 2 + a * 3; ";
+            code += "structure1.structure2.function(a, b); structure3.another_function(a + b * no_args()); }";
 
             var input = new AntlrInputStream(code);
             var lexer = new LasagneLexer(input);
@@ -28,7 +29,7 @@ namespace Lasagne.Compiler
             var program = visitor.VisitProgram(tree);
             var ctx = tree.ToStringTree(parser);
             Console.WriteLine(FormatSexp(ctx));
-         }
+        }
 
         public string FormatSexp(string sexp)
         {

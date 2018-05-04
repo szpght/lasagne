@@ -1,6 +1,6 @@
 ﻿namespace Lasagne.Compiler.Ast
 {
-    public class TypeNode : Node, INamedNode
+    public class Identifier : Expression, INamedNode
     {
         public string Name { get; set; }
     }
